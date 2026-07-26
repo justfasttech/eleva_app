@@ -36,6 +36,13 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.15.0
   flutter_riverpod: ^3.3.2
+  flutter_svg: ^2.0.17
+  fl_chart: ^0.70.2
+  just_audio: ^0.9.40
+  file_picker: ^8.1.6
+  package_info_plus: ^9.0.1
+  shared_preferences: ^2.5.5
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +54,19 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo_icon.png"
+  adaptive_icon_background: "#FAF6EE"
+  adaptive_icon_foreground: "assets/images/logo_icon.png"
+  web:
+    generate: true
+    image_path: "assets/images/logo_icon.png"
+    background_color: "#FAF6EE"
+    theme_color: "#E8B84B"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -59,10 +79,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/
+    - assets/images/trees/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
