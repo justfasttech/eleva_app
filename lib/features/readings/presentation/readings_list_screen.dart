@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
+import '../../auth/providers/user_profile_provider.dart';
 import '../models/spiritual_reading.dart';
 import '../providers/readings_provider.dart';
 import 'reading_detail_screen.dart';
@@ -36,6 +37,9 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
   @override
   Widget build(BuildContext context) {
     final readingsAsync = ref.watch(readingsByCategoryProvider(_selectedCategory));
+    final profile = ref.watch(userProfileProvider).value;
+    final faithLevel = profile?.faithLevel ?? 0;
+    final userReadingLevel = ((faithLevel ~/ 10) + 1).clamp(1, 7);
 
     return Scaffold(
       backgroundColor: ElevaColors.white,
@@ -105,11 +109,21 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
                     ),
                   );
                 }
+                final unlocked = published.where((r) => r.level <= userReadingLevel).toList();
+                final locked = published.where((r) => r.level > userReadingLevel).toList();
+                final allItems = [...unlocked, ...locked];
+
                 return ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: published.length,
+                  itemCount: allItems.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) => _ReadingCard(reading: published[i]),
+                  itemBuilder: (context, i) {
+                    final reading = allItems[i];
+                    if (reading.level > userReadingLevel) {
+                      return _LockedReadingCard(reading: reading);
+                    }
+                    return _ReadingCard(reading: reading);
+                  },
                 );
               },
             ),
@@ -202,6 +216,65 @@ class _ReadingCard extends StatelessWidget {
               const Icon(Icons.chevron_right_rounded, size: 20, color: ElevaColors.textMuted),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LockedReadingCard extends StatelessWidget {
+  final SpiritualReading reading;
+
+  const _LockedReadingCard({required this.reading});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: 0.5,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: ElevaColors.offWhite,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.lock_rounded,
+                  size: 22, color: ElevaColors.textMuted),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reading.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: ElevaColors.textMuted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Será desbloqueada no futuro',
+                    style: TextStyle(fontSize: 12, color: ElevaColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.lock_outline_rounded,
+                size: 18, color: ElevaColors.textMuted),
+          ],
         ),
       ),
     );

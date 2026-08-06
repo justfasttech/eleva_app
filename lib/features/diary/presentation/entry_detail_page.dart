@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme.dart';
 import '../models/diary_entry.dart';
 import '../providers/diary_provider.dart';
+import '../providers/scoring_words_provider.dart';
 import '../utils/faith_penalty.dart';
 
 const _months = [
@@ -210,12 +211,13 @@ class _EntryDetailPageState extends ConsumerState<EntryDetailPage> {
                                 })
                                 .eq('id', _entry.id);
 
-                            final penalty = calculateContentPenalty(content);
-                            if (penalty < 0) {
+                            final words = ref.read(scoringWordsProvider).value ?? [];
+                            final score = calculateContentScore(content, words);
+                            if (score != 0) {
                               final userId = Supabase.instance.client.auth.currentUser!.id;
                               await Supabase.instance.client.rpc('apply_faith_penalty', params: {
                                 'p_user_id': userId,
-                                'p_amount': penalty,
+                                'p_amount': score,
                               });
                             }
 
@@ -235,21 +237,12 @@ class _EntryDetailPageState extends ConsumerState<EntryDetailPage> {
                               );
                             });
                             if (mounted) {
-                              if (penalty < 0) {
-                                ScaffoldMessenger.of(this.context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Reflexão atualizada. Você perdeu ${penalty.abs()} pontos de fé por conteúdo negativo.'),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(this.context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Reflexão atualizada!'),
-                                    backgroundColor: ElevaColors.gold,
-                                  ),
-                                );
-                              }
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Reflexão atualizada!'),
+                                  backgroundColor: ElevaColors.gold,
+                                ),
+                              );
                             }
                           } catch (e) {
                             if (context.mounted) {

@@ -6,6 +6,7 @@ class SpiritualReading {
   final String? author;
   final String? reference;
   final int faithPoints;
+  final int level;
   final bool isPublished;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -18,6 +19,7 @@ class SpiritualReading {
     this.author,
     this.reference,
     required this.faithPoints,
+    this.level = 1,
     required this.isPublished,
     required this.createdAt,
     required this.updatedAt,
@@ -32,6 +34,7 @@ class SpiritualReading {
       author: map['author'] as String?,
       reference: map['reference'] as String?,
       faithPoints: map['faith_points'] as int? ?? 1,
+      level: map['level'] as int? ?? 1,
       isPublished: map['is_published'] as bool? ?? true,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -46,6 +49,7 @@ class SpiritualReading {
       'author': author,
       'reference': reference,
       'faith_points': faithPoints,
+      'level': level,
       'is_published': isPublished,
     };
   }

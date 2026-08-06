@@ -33,16 +33,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     _penaltyChecked = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final message = await FaithPenaltyChecker.check(ref);
-      if (message != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+      await FaithPenaltyChecker.check(ref);
     });
   }
 

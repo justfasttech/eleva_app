@@ -95,7 +95,7 @@ class _DailyTasksState extends ConsumerState<DailyTasks> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSection(
-          title: 'Tarefas do dia',
+          title: 'Tarefas aconselháveis',
           icon: Icons.star_rounded,
           tasksAsync: dailyAsync,
           completedIds: _completedDailyIds,

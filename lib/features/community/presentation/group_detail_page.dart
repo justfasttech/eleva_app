@@ -1,5 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme.dart';
@@ -9,6 +14,8 @@ import '../models/group_join_request.dart';
 import '../models/group_post.dart';
 import '../models/group_post_comment.dart';
 import '../providers/groups_provider.dart';
+import '../utils/media_upload.dart';
+import 'widgets/post_media.dart';
 
 class GroupDetailPage extends ConsumerStatefulWidget {
   final CommunityGroup group;
@@ -171,7 +178,7 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
           ? FloatingActionButton(
               onPressed: () => _showNewPostSheet(context),
               backgroundColor: ElevaColors.gold,
-              child: const Icon(Icons.edit_rounded, color: Colors.white),
+              child: const Icon(Icons.add_rounded, color: Colors.white),
             )
           : null,
     );
@@ -202,6 +209,10 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
   }
 
   void _showNewPostSheet(BuildContext context) {
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+    final rootMessenger = ScaffoldMessenger.of(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -209,7 +220,289 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _NewGroupPostSheet(groupId: widget.group.id),
+      builder: (ctx) {
+        bool isSaving = false;
+        String? errorMessage;
+        Uint8List? imageBytes;
+        String? imageFileName;
+        Uint8List? videoBytes;
+        String? videoFileName;
+
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: EdgeInsets.fromLTRB(
+              24, 12, 24,
+              MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: ElevaColors.textMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                if (errorMessage != null)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, size: 18, color: Colors.red.shade400),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => setSheetState(() => errorMessage = null),
+                          child: Icon(Icons.close, size: 16, color: Colors.red.shade300),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Nova publicação',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: ElevaColors.textDark,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    hintText: 'Título',
+                    prefixIcon: const Icon(Icons.title_rounded, color: ElevaColors.gold),
+                    filled: true,
+                    fillColor: ElevaColors.offWhite,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: bodyController,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: 'Escreva sua publicação...',
+                    alignLabelWithHint: true,
+                    filled: true,
+                    fillColor: ElevaColors.offWhite,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  textAlignVertical: TextAlignVertical.top,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 8),
+                if (imageBytes == null && videoFileName == null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final result = await FilePicker.platform.pickFiles(type: FileType.media);
+                            if (result == null || result.files.isEmpty) return;
+                            final file = result.files.first;
+                            if (file.bytes == null) return;
+                            final ext = file.extension?.toLowerCase() ?? '';
+                            final isVideo = ['mp4', 'mov', 'avi', 'webm'].contains(ext);
+                            setSheetState(() {
+                              if (isVideo) {
+                                videoBytes = file.bytes;
+                                videoFileName = file.name;
+                              } else {
+                                imageBytes = file.bytes;
+                                imageFileName = file.name;
+                              }
+                            });
+                          },
+                          icon: const Icon(Icons.attach_file_rounded, size: 18),
+                          label: const Text('Arquivo'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: ElevaColors.gold,
+                            side: const BorderSide(color: ElevaColors.gold),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (!kIsWeb) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final picker = ImagePicker();
+                              final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1920);
+                              if (picked == null) return;
+                              final bytes = await picked.readAsBytes();
+                              setSheetState(() {
+                                imageBytes = bytes;
+                                imageFileName = picked.name;
+                                videoBytes = null;
+                                videoFileName = null;
+                              });
+                            },
+                            icon: const Icon(Icons.camera_alt_rounded, size: 18),
+                            label: const Text('Câmera'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: ElevaColors.gold,
+                              side: const BorderSide(color: ElevaColors.gold),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                if (imageBytes != null || videoFileName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: ElevaColors.offWhite,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          if (imageBytes != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.memory(imageBytes!, width: 40, height: 40, fit: BoxFit.cover),
+                            )
+                          else
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: ElevaColors.gold.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.videocam_rounded, size: 20, color: ElevaColors.gold),
+                            ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              imageFileName ?? videoFileName ?? '',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, color: ElevaColors.textDark),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => setSheetState(() {
+                              imageBytes = null; imageFileName = null;
+                              videoBytes = null; videoFileName = null;
+                            }),
+                            child: const Icon(Icons.close_rounded, size: 20, color: ElevaColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            final title = titleController.text.trim();
+                            final body = bodyController.text.trim();
+                            if (title.isEmpty || body.isEmpty) {
+                              setSheetState(() => errorMessage = 'Preencha o título e a descrição');
+                              return;
+                            }
+                            setSheetState(() { isSaving = true; errorMessage = null; });
+                            try {
+                              final user = Supabase.instance.client.auth.currentUser!;
+                              final profile = ref.read(userProfileProvider).value;
+                              final authorName = profile?.name ?? 'Anônimo';
+
+                              String? imageUrl;
+                              String? videoUrl;
+                              if (imageBytes != null) {
+                                imageUrl = await CommunityMediaUploader.uploadImage(
+                                  imageBytes!, imageFileName ?? 'image.jpg', user.id,
+                                );
+                              }
+                              if (videoBytes != null) {
+                                videoUrl = await CommunityMediaUploader.uploadVideo(
+                                  videoBytes!, videoFileName ?? 'video.mp4', user.id,
+                                );
+                              }
+
+                              await createGroupPost(
+                                groupId: widget.group.id,
+                                userId: user.id,
+                                authorName: authorName,
+                                title: title,
+                                content: body,
+                                imageUrl: imageUrl,
+                                videoUrl: videoUrl,
+                              );
+
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                                rootMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Post publicado!'),
+                                    backgroundColor: ElevaColors.gold,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                setSheetState(() => errorMessage = 'Erro ao publicar: $e');
+                              }
+                            } finally {
+                              if (ctx.mounted) setSheetState(() => isSaving = false);
+                            }
+                          },
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: ElevaColors.white,
+                            ),
+                          )
+                        : const Text('Publicar'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -442,19 +735,24 @@ class _PostsSection extends ConsumerWidget {
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: posts.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, i) {
-            final post = posts[i];
-            final canDelete = isCreator || post.userId == currentUserId;
-            return _GroupPostCard(
-              post: post,
-              canDelete: canDelete,
-              currentUserId: currentUserId,
-            );
-          },
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: posts.length,
+              separatorBuilder: (_, __) => Container(height: 8, color: const Color(0xFFEEEEEE)),
+              itemBuilder: (context, i) {
+                final post = posts[i];
+                final canDelete = isCreator || post.userId == currentUserId;
+                return _GroupPostCard(
+                  post: post,
+                  canDelete: canDelete,
+                  currentUserId: currentUserId,
+                );
+              },
+            ),
+          ),
         );
       },
     );
@@ -478,145 +776,176 @@ class _GroupPostCard extends ConsumerWidget {
     final isLiked = userLikes.contains(post.id);
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: ElevaColors.offWhite,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: ElevaColors.gold.withValues(alpha: 0.15),
-                child: Text(
-                  post.avatarLetter,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: ElevaColors.gold,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: ElevaColors.gold.withValues(alpha: 0.15),
+                  child: Text(
+                    post.avatarLetter,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: ElevaColors.gold,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.authorName,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: ElevaColors.textDark,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.authorName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: ElevaColors.textDark,
+                        ),
                       ),
-                    ),
-                    Text(
-                      post.timeAgo,
-                      style: const TextStyle(
-                          fontSize: 11, color: ElevaColors.textMuted),
-                    ),
-                  ],
+                      Text(
+                        post.timeAgo,
+                        style: const TextStyle(
+                            fontSize: 12, color: ElevaColors.textMuted),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (canDelete)
-                IconButton(
-                  onPressed: () async {
-                    try {
-                      await deleteGroupPost(post.id);
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Erro ao excluir: $e'),
-                            backgroundColor: Colors.red.shade400,
-                          ),
-                        );
+                if (canDelete)
+                  IconButton(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Excluir post'),
+                          content: const Text('Tem certeza que deseja excluir este post?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              child: const Text('Excluir'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      try {
+                        await deleteGroupPost(post.id);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao excluir: $e'),
+                              backgroundColor: Colors.red.shade400,
+                            ),
+                          );
+                        }
                       }
-                    }
+                    },
+                    icon: Icon(Icons.delete_outline_rounded,
+                        size: 20, color: Colors.red.shade300),
+                    iconSize: 20,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: Text(
+              post.title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: ElevaColors.textDark,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Text(
+              post.content,
+              style: const TextStyle(
+                fontSize: 14,
+                color: ElevaColors.textMuted,
+                height: 1.4,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (post.hasImage || post.hasVideo)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: PostMediaDisplay(
+                imageUrl: post.imageUrl,
+                videoUrl: post.videoUrl,
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    try {
+                      await toggleGroupPostLike(post.id, currentUserId, isLiked);
+                    } catch (_) {}
                   },
-                  icon: Icon(Icons.delete_outline_rounded,
-                      size: 18, color: Colors.red.shade300),
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            post.title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: ElevaColors.textDark,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            post.content,
-            style: const TextStyle(
-              fontSize: 13,
-              color: ElevaColors.textMuted,
-              height: 1.4,
-            ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () async {
-                  try {
-                    await toggleGroupPostLike(post.id, currentUserId, isLiked);
-                  } catch (_) {}
-                },
-                child: Row(
-                  children: [
-                    Icon(
-                      isLiked
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      size: 18,
-                      color:
-                          isLiked ? ElevaColors.gold : ElevaColors.textMuted,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${post.likesCount}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: isLiked
-                            ? ElevaColors.gold
-                            : ElevaColors.textMuted,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isLiked
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        size: 20,
+                        color:
+                            isLiked ? ElevaColors.gold : ElevaColors.textMuted,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              GestureDetector(
-                onTap: () => _showComments(context),
-                child: Row(
-                  children: [
-                    const Icon(Icons.chat_bubble_outline_rounded,
-                        size: 16, color: ElevaColors.textMuted),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${post.commentsCount}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: ElevaColors.textMuted,
+                      const SizedBox(width: 4),
+                      Text(
+                        '${post.likesCount}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isLiked
+                              ? ElevaColors.gold
+                              : ElevaColors.textMuted,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 20),
+                GestureDetector(
+                  onTap: () => _showComments(context),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.chat_bubble_outline_rounded,
+                          size: 18, color: ElevaColors.textMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${post.commentsCount}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: ElevaColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -854,138 +1183,6 @@ class _CommentItem extends StatelessWidget {
   }
 }
 
-class _NewGroupPostSheet extends ConsumerStatefulWidget {
-  final String groupId;
-  const _NewGroupPostSheet({required this.groupId});
-
-  @override
-  ConsumerState<_NewGroupPostSheet> createState() =>
-      _NewGroupPostSheetState();
-}
-
-class _NewGroupPostSheetState extends ConsumerState<_NewGroupPostSheet> {
-  final _titleController = TextEditingController();
-  final _bodyController = TextEditingController();
-  bool _isSaving = false;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _publish() async {
-    final title = _titleController.text.trim();
-    final body = _bodyController.text.trim();
-    if (title.isEmpty || body.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preencha o título e a descrição'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final profile = ref.read(userProfileProvider).value;
-      final authorName = profile?.name ?? 'Anônimo';
-
-      await createGroupPost(
-        groupId: widget.groupId,
-        userId: user.id,
-        authorName: authorName,
-        title: title,
-        content: body,
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post publicado!'),
-            backgroundColor: ElevaColors.gold,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao publicar: $e'),
-            backgroundColor: Colors.red.shade400,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: ElevaColors.textMuted.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Novo post',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: ElevaColors.textDark,
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(hintText: 'Título do post'),
-            textCapitalization: TextCapitalization.sentences,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _bodyController,
-            decoration:
-                const InputDecoration(hintText: 'Descreva seu post...'),
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _isSaving ? null : _publish,
-            child: _isSaving
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: ElevaColors.white,
-                    ),
-                  )
-                : const Text('Publicar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _JoinRequestsSheet extends ConsumerWidget {
   final String groupId;

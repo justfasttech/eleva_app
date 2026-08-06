@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
+import '../../auth/providers/user_profile_provider.dart';
 import '../../readings/providers/readings_provider.dart';
 import '../../readings/presentation/reading_detail_screen.dart';
 import '../../readings/presentation/readings_list_screen.dart';
@@ -58,8 +59,14 @@ class ChallengesPage extends ConsumerWidget {
                   child: Text('Erro ao carregar', style: TextStyle(color: ElevaColors.textMuted)),
                 ),
                 data: (readings) {
-                  final published = readings.where((r) => r.isPublished).take(6).toList();
-                  if (published.isEmpty) {
+                  final profile = ref.watch(userProfileProvider).value;
+                  final faithLevel = profile?.faithLevel ?? 0;
+                  final userReadingLevel = ((faithLevel ~/ 10) + 1).clamp(1, 7);
+                  final published = readings.where((r) => r.isPublished).toList();
+                  final unlocked = published.where((r) => r.level <= userReadingLevel).take(6).toList();
+                  final locked = published.where((r) => r.level > userReadingLevel).take(3).toList();
+                  final allItems = [...unlocked, ...locked];
+                  if (allItems.isEmpty) {
                     return const Center(
                       child: Text('Em breve!', style: TextStyle(color: ElevaColors.textMuted)),
                     );
@@ -68,9 +75,14 @@ class ChallengesPage extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.only(left: 24, right: 60),
                     clipBehavior: Clip.none,
-                    itemCount: published.length,
+                    itemCount: allItems.length,
                     itemBuilder: (context, i) {
-                      final r = published[i];
+                      final r = allItems[i];
+                      if (r.level > userReadingLevel) {
+                        return _LockedContentCard(
+                          title: r.title,
+                        );
+                      }
                       return _ContentCard(
                         title: r.title,
                         subtitle: r.reference ?? r.categoryLabel,
@@ -222,6 +234,63 @@ class _ContentCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 11, color: ElevaColors.textMuted),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LockedContentCard extends StatelessWidget {
+  final String title;
+
+  const _LockedContentCard({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: 0.5,
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: ElevaColors.offWhite,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.lock_rounded,
+                  size: 17, color: ElevaColors.textMuted),
+            ),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Será desbloqueada',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: ElevaColors.textMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'no futuro',
+                  style: TextStyle(fontSize: 11, color: ElevaColors.textMuted),
                 ),
               ],
             ),

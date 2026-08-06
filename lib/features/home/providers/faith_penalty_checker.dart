@@ -7,59 +7,54 @@ import 'faith_history_provider.dart';
 import 'faith_history_recorder.dart';
 
 class FaithPenaltyChecker {
-  static Future<String?> check(WidgetRef ref) async {
+  static Future<void> check(WidgetRef ref) async {
     final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return null;
+    if (user == null) return;
 
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
 
-    final messages = <String>[];
+    var applied = false;
 
-    final inactivityPenalty = await _checkInactivity(prefs, today, user.id);
-    if (inactivityPenalty != null) messages.add(inactivityPenalty);
-
-    final diaryPenalty = await _checkDiaryAbsence(prefs, today, user.id);
-    if (diaryPenalty != null) messages.add(diaryPenalty);
+    if (await _checkInactivity(prefs, today, user.id)) applied = true;
+    if (await _checkDiaryAbsence(prefs, today, user.id)) applied = true;
 
     await prefs.setString('last_active_date', today);
 
-    if (messages.isNotEmpty) {
+    if (applied) {
       ref.invalidate(userProfileProvider);
       ref.invalidate(faithHistoryProvider);
     }
-
-    return messages.isEmpty ? null : messages.join('\n');
   }
 
-  static Future<String?> _checkInactivity(SharedPreferences prefs, String today, String userId) async {
+  static Future<bool> _checkInactivity(SharedPreferences prefs, String today, String userId) async {
     final lastActive = prefs.getString('last_active_date');
-    if (lastActive == null) return null;
+    if (lastActive == null) return false;
 
     final lastDate = DateTime.tryParse(lastActive);
-    if (lastDate == null) return null;
+    if (lastDate == null) return false;
 
     final daysDiff = DateTime.now().difference(lastDate).inDays;
-    if (daysDiff < 3) return null;
+    if (daysDiff < 3) return false;
 
     final penaltyKey = 'inactivity_penalty_$today';
-    if (prefs.getBool(penaltyKey) == true) return null;
+    if (prefs.getBool(penaltyKey) == true) return false;
 
     await _applyPenalty(userId, -3);
     await prefs.setBool(penaltyKey, true);
 
-    return 'Você perdeu 3 pontos de fé por $daysDiff dias de inatividade';
+    return true;
   }
 
-  static Future<String?> _checkDiaryAbsence(SharedPreferences prefs, String today, String userId) async {
+  static Future<bool> _checkDiaryAbsence(SharedPreferences prefs, String today, String userId) async {
     final penaltyKey = 'diary_penalty_$today';
-    if (prefs.getBool(penaltyKey) == true) return null;
+    if (prefs.getBool(penaltyKey) == true) return false;
 
     final lastPenaltyDate = prefs.getString('last_diary_penalty_date');
     if (lastPenaltyDate != null) {
       final lastPenalty = DateTime.tryParse(lastPenaltyDate);
       if (lastPenalty != null && DateTime.now().difference(lastPenalty).inDays < 7) {
-        return null;
+        return false;
       }
     }
 
@@ -71,20 +66,20 @@ class FaithPenaltyChecker {
           .order('created_at', ascending: false)
           .limit(1);
 
-      if (entries.isEmpty) return null;
+      if (entries.isEmpty) return false;
 
       final lastEntry = DateTime.parse(entries[0]['created_at'] as String);
       final daysSince = DateTime.now().difference(lastEntry).inDays;
 
-      if (daysSince < 7) return null;
+      if (daysSince < 7) return false;
 
       await _applyPenalty(userId, -5);
       await prefs.setBool(penaltyKey, true);
       await prefs.setString('last_diary_penalty_date', today);
 
-      return 'Você perdeu 5 pontos de fé por $daysSince dias sem reflexão';
+      return true;
     } catch (_) {
-      return null;
+      return false;
     }
   }
 

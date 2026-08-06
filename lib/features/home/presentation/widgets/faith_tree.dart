@@ -13,6 +13,17 @@ class FaithTree extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Árvore da fé',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: ElevaColors.gold,
+            ),
+          ),
+        ),
         Container(
           height: 180,
           width: double.infinity,

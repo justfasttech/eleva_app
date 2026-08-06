@@ -149,6 +149,9 @@ Future<void> createGroupPost({
   required String authorName,
   required String title,
   required String content,
+  String? imageUrl,
+  String? videoUrl,
+  bool isQuestion = false,
 }) async {
   await Supabase.instance.client.from('group_posts').insert({
     'group_id': groupId,
@@ -156,6 +159,9 @@ Future<void> createGroupPost({
     'author_name': authorName,
     'title': title,
     'content': content,
+    'is_question': isQuestion,
+    if (imageUrl != null) 'image_url': imageUrl,
+    if (videoUrl != null) 'video_url': videoUrl,
   });
 }
 

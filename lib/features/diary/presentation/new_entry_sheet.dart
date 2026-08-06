@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme.dart';
 import '../models/diary_entry.dart';
+import '../providers/scoring_words_provider.dart';
 import '../utils/faith_penalty.dart';
 
 void showNewEntrySheet(BuildContext context) {
@@ -12,14 +14,14 @@ void showNewEntrySheet(BuildContext context) {
   );
 }
 
-class NewEntryPage extends StatefulWidget {
+class NewEntryPage extends ConsumerStatefulWidget {
   const NewEntryPage({super.key});
 
   @override
-  State<NewEntryPage> createState() => _NewEntryPageState();
+  ConsumerState<NewEntryPage> createState() => _NewEntryPageState();
 }
 
-class _NewEntryPageState extends State<NewEntryPage> {
+class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   String _selectedMood = 'neutral';
@@ -54,31 +56,23 @@ class _NewEntryPageState extends State<NewEntryPage> {
         'mood': _selectedMood,
       });
 
-      final penalty = calculateContentPenalty(content);
-      if (penalty < 0) {
+      final words = ref.read(scoringWordsProvider).value ?? [];
+      final score = calculateContentScore(content, words);
+      if (score != 0) {
         await Supabase.instance.client.rpc('apply_faith_penalty', params: {
           'p_user_id': userId,
-          'p_amount': penalty,
+          'p_amount': score,
         });
       }
 
       if (mounted) {
         Navigator.pop(context);
-        if (penalty < 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Reflexão salva. Você perdeu ${penalty.abs()} pontos de fé por conteúdo negativo.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Reflexão salva!'),
-              backgroundColor: ElevaColors.gold,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reflexão salva!'),
+            backgroundColor: ElevaColors.gold,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

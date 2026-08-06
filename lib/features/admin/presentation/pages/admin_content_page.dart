@@ -13,8 +13,10 @@ import '../../../meditation/providers/meditation_provider.dart';
 import '../../../meditation/presentation/meditation_player_screen.dart';
 import '../../../tasks/models/daily_task.dart';
 import '../../../tasks/providers/tasks_provider.dart';
-import '../../../verses/models/daily_verse.dart';
-import '../../../verses/providers/verses_provider.dart';
+import '../../../community/models/post_theme.dart';
+import '../../../community/providers/themes_provider.dart';
+import '../../../diary/models/scoring_word.dart';
+import '../../../diary/providers/scoring_words_provider.dart';
 
 class AdminContentPage extends StatefulWidget {
   const AdminContentPage({super.key});
@@ -30,7 +32,7 @@ class _AdminContentPageState extends State<AdminContentPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -87,7 +89,8 @@ class _AdminContentPageState extends State<AdminContentPage>
                   Tab(text: 'Leituras'),
                   Tab(text: 'Meditacoes'),
                   Tab(text: 'Tarefas'),
-                  Tab(text: 'Versiculos'),
+                  Tab(text: 'Temas'),
+                  Tab(text: 'Cotação'),
                 ],
               ),
             ),
@@ -100,7 +103,8 @@ class _AdminContentPageState extends State<AdminContentPage>
                 _ReadingsTab(),
                 _MeditationsTab(),
                 _TasksTab(),
-                _VersesTab(),
+                _ThemesTab(),
+                _ScoringWordsTab(),
               ],
             ),
           ),
@@ -115,6 +119,7 @@ class _ReadingsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final readingsAsync = ref.watch(spiritualReadingsProvider);
 
     return Column(
@@ -134,25 +139,61 @@ class _ReadingsTab extends ConsumerWidget {
                       style: TextStyle(fontSize: 14, color: Colors.grey)),
                 );
               }
-              return ListView.separated(
+
+              final grouped = <int, List<SpiritualReading>>{};
+              for (final r in readings) {
+                grouped.putIfAbsent(r.level, () => []).add(r);
+              }
+              final sortedKeys = grouped.keys.toList()..sort();
+
+              return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: readings.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, i) {
-                  final r = readings[i];
-                  return _ContentCard(
-                    icon: Icons.menu_book_rounded,
-                    title: r.title,
-                    subtitle: r.reference ?? r.categoryLabel,
-                    trailing: _CategoryBadge(label: r.categoryLabel),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ReadingDetailScreen(reading: r, isAdmin: true),
+                itemCount: sortedKeys.length,
+                itemBuilder: (context, sectionIndex) {
+                  final level = sortedKeys[sectionIndex];
+                  final sectionReadings = grouped[level]!;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (sectionIndex > 0) const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Nível $level',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: cs.primary,
+                          ),
+                        ),
                       ),
-                    ),
-                    onEdit: () => _showReadingForm(context, existing: r),
-                    onDelete: () => _confirmDelete(context, r),
+                      const SizedBox(height: 8),
+                      ...sectionReadings.map((r) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _ContentCard(
+                              icon: Icons.menu_book_rounded,
+                              title: r.title,
+                              subtitle: r.reference ?? r.categoryLabel,
+                              trailing: _CategoryBadge(label: r.categoryLabel),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReadingDetailScreen(
+                                      reading: r, isAdmin: true),
+                                ),
+                              ),
+                              onEdit: () =>
+                                  _showReadingForm(context, existing: r),
+                              onDelete: () => _confirmDelete(context, r),
+                            ),
+                          )),
+                    ],
                   );
                 },
               );
@@ -484,38 +525,38 @@ class _TasksTab extends ConsumerWidget {
   }
 }
 
-class _VersesTab extends ConsumerWidget {
-  const _VersesTab();
+class _ThemesTab extends ConsumerWidget {
+  const _ThemesTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final versesAsync = ref.watch(dailyVersesProvider);
+    final themesAsync = ref.watch(postThemesProvider);
 
     return Column(
       children: [
         _AddButton(
-          label: 'Novo versículo',
-          onTap: () => _showVerseForm(context),
+          label: 'Novo tema',
+          onTap: () => _showThemeForm(context),
         ),
         Expanded(
-          child: versesAsync.when(
+          child: themesAsync.when(
             loading: () =>
                 Center(child: CircularProgressIndicator(color: cs.primary)),
             error: (e, _) => Center(child: Text('Erro: $e')),
-            data: (verses) {
-              if (verses.isEmpty) {
+            data: (themes) {
+              if (themes.isEmpty) {
                 return const Center(
-                  child: Text('Nenhum versículo cadastrado',
+                  child: Text('Nenhum tema cadastrado',
                       style: TextStyle(fontSize: 14, color: Colors.grey)),
                 );
               }
               return ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: verses.length,
+                itemCount: themes.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, i) {
-                  final v = verses[i];
+                  final t = themes[i];
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -531,16 +572,8 @@ class _VersesTab extends ConsumerWidget {
                             color: cs.primary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Center(
-                            child: Text(
-                              '${i + 1}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ),
+                          child: Icon(Icons.label_rounded,
+                              size: 18, color: cs.primary),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -548,30 +581,27 @@ class _VersesTab extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                v.text,
+                                t.name,
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                   color: cs.onSurface,
-                                  height: 1.4,
-                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
-                              if (v.source.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  v.source,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: cs.primary,
-                                  ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${t.createdAt.day}/${t.createdAt.month}/${t.createdAt.year}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: cs.onSurfaceVariant,
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
                         IconButton(
-                          onPressed: () => _showVerseForm(context, existing: v),
+                          onPressed: () =>
+                              _showThemeForm(context, existing: t),
                           icon: Icon(Icons.edit_rounded,
                               size: 18, color: cs.onSurfaceVariant),
                           padding: EdgeInsets.zero,
@@ -579,7 +609,7 @@ class _VersesTab extends ConsumerWidget {
                         ),
                         IconButton(
                           onPressed: () =>
-                              _confirmDeleteVerse(context, v),
+                              _confirmDeleteTheme(context, t),
                           icon: const Icon(Icons.delete_outline_rounded,
                               size: 18, color: Colors.red),
                           padding: EdgeInsets.zero,
@@ -597,16 +627,15 @@ class _VersesTab extends ConsumerWidget {
     );
   }
 
-  void _confirmDeleteVerse(BuildContext context, DailyVerse verse) {
+  void _confirmDeleteTheme(BuildContext context, PostTheme theme) {
     final cs = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: cs.surface,
-        title:
-            Text('Excluir versículo?', style: TextStyle(color: cs.onSurface)),
+        title: Text('Excluir tema?', style: TextStyle(color: cs.onSurface)),
         content: Text(
-            '"${verse.text.length > 60 ? '${verse.text.substring(0, 60)}...' : verse.text}" será removido.',
+            '"${theme.name}" será removido. Posts com este tema ficarão sem tema.',
             style: TextStyle(color: cs.onSurfaceVariant)),
         actions: [
           TextButton(
@@ -618,9 +647,161 @@ class _VersesTab extends ConsumerWidget {
             onPressed: () async {
               Navigator.pop(ctx);
               await Supabase.instance.client
-                  .from('daily_verses')
+                  .from('post_themes')
                   .delete()
-                  .eq('id', verse.id);
+                  .eq('id', theme.id);
+            },
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoringWordsTab extends ConsumerWidget {
+  const _ScoringWordsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final wordsAsync = ref.watch(scoringWordsProvider);
+
+    return Column(
+      children: [
+        _AddButton(
+          label: 'Nova palavra',
+          onTap: () => _showScoringWordForm(context),
+        ),
+        Expanded(
+          child: wordsAsync.when(
+            loading: () =>
+                Center(child: CircularProgressIndicator(color: cs.primary)),
+            error: (e, _) => Center(child: Text('Erro: $e')),
+            data: (words) {
+              if (words.isEmpty) {
+                return const Center(
+                  child: Text('Nenhuma palavra cadastrada',
+                      style: TextStyle(fontSize: 14, color: Colors.grey)),
+                );
+              }
+
+              final grouped = <int, List<ScoringWord>>{};
+              for (final w in words) {
+                grouped.putIfAbsent(w.points, () => []).add(w);
+              }
+              final sortedKeys = grouped.keys.toList()
+                ..sort((a, b) => b.compareTo(a));
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: sortedKeys.length,
+                itemBuilder: (context, sectionIndex) {
+                  final pts = sortedKeys[sectionIndex];
+                  final sectionWords = grouped[pts]!;
+                  final isPositive = pts > 0;
+                  final color = isPositive ? Colors.green : Colors.red;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (sectionIndex > 0) const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${isPositive ? "+" : ""}$pts ${pts.abs() == 1 ? "ponto" : "pontos"}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...sectionWords.map((w) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: cs.surface,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      w.word,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: cs.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () => _showScoringWordForm(
+                                        context,
+                                        existing: w),
+                                    icon: Icon(Icons.edit_rounded,
+                                        size: 18,
+                                        color: cs.onSurfaceVariant),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        _confirmDeleteScoringWord(context, w),
+                                    icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: Colors.red),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDeleteScoringWord(BuildContext context, ScoringWord word) {
+    final cs = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surface,
+        title: Text('Excluir palavra?', style: TextStyle(color: cs.onSurface)),
+        content: Text(
+            '"${word.word}" (${word.points > 0 ? "+${word.points}" : "${word.points}"}) será removida.',
+            style: TextStyle(color: cs.onSurfaceVariant)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar',
+                style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await Supabase.instance.client
+                  .from('scoring_words')
+                  .delete()
+                  .eq('id', word.id);
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
@@ -632,6 +813,105 @@ class _VersesTab extends ConsumerWidget {
 
 // === Widgets reutilizaveis ===
 
+void _showScoringWordForm(BuildContext context, {ScoringWord? existing}) {
+  final cs = Theme.of(context).colorScheme;
+  final wordCtrl = TextEditingController(text: existing?.word ?? '');
+  final pointsCtrl =
+      TextEditingController(text: (existing?.points ?? 1).toString());
+  bool isSaving = false;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: cs.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheetState) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              existing != null ? 'Editar palavra' : 'Nova palavra',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: wordCtrl,
+              decoration: InputDecoration(
+                labelText: 'Palavra',
+                prefixIcon: Icon(Icons.text_fields_rounded, color: cs.primary),
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: pointsCtrl,
+              decoration: InputDecoration(
+                labelText: 'Pontos (positivo ou negativo)',
+                prefixIcon: Icon(Icons.exposure_rounded, color: cs.primary),
+                helperText: 'Ex: 3 para bônus, -3 para penalidade',
+                helperStyle: TextStyle(color: cs.onSurfaceVariant),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(signed: true),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final word = wordCtrl.text.trim();
+                        final points =
+                            int.tryParse(pointsCtrl.text.trim()) ?? 0;
+                        if (word.isEmpty || points == 0) return;
+
+                        setSheetState(() => isSaving = true);
+                        try {
+                          if (existing != null) {
+                            await Supabase.instance.client
+                                .from('scoring_words')
+                                .update({'word': word, 'points': points})
+                                .eq('id', existing.id);
+                          } else {
+                            await Supabase.instance.client
+                                .from('scoring_words')
+                                .insert({'word': word, 'points': points});
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                  content: Text('Erro: $e'),
+                                  backgroundColor: Colors.red),
+                            );
+                          }
+                        } finally {
+                          if (ctx.mounted) {
+                            setSheetState(() => isSaving = false);
+                          }
+                        }
+                      },
+                child: Text(existing != null ? 'Salvar' : 'Adicionar'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 void _showReadingForm(BuildContext context, {SpiritualReading? existing}) {
   final cs = Theme.of(context).colorScheme;
   final titleCtrl = TextEditingController(text: existing?.title ?? '');
@@ -641,6 +921,7 @@ void _showReadingForm(BuildContext context, {SpiritualReading? existing}) {
   final pointsCtrl =
       TextEditingController(text: (existing?.faithPoints ?? 1).toString());
   String selectedCategory = existing?.category ?? 'textos';
+  int selectedLevel = existing?.level ?? 1;
   bool isPublished = existing?.isPublished ?? true;
   bool isSaving = false;
 
@@ -732,6 +1013,24 @@ void _showReadingForm(BuildContext context, {SpiritualReading? existing}) {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                value: selectedLevel,
+                dropdownColor: cs.surface,
+                style: TextStyle(color: cs.onSurface, fontSize: 16),
+                decoration: const InputDecoration(
+                    hintText: 'Nível da leitura (1-7)'),
+                items: List.generate(
+                  7,
+                  (i) => DropdownMenuItem(
+                    value: i + 1,
+                    child: Text('Nível ${i + 1}'),
+                  ),
+                ),
+                onChanged: (v) {
+                  if (v != null) setSheetState(() => selectedLevel = v);
+                },
+              ),
+              const SizedBox(height: 12),
               SwitchListTile(
                 value: isPublished,
                 onChanged: (v) => setSheetState(() => isPublished = v),
@@ -763,6 +1062,7 @@ void _showReadingForm(BuildContext context, {SpiritualReading? existing}) {
                           'content': content,
                           'faith_points':
                               int.tryParse(pointsCtrl.text.trim()) ?? 1,
+                          'level': selectedLevel,
                           'is_published': isPublished,
                         };
 
@@ -1252,11 +1552,9 @@ void _showTaskForm(BuildContext context, {DailyTask? existing}) {
   );
 }
 
-void _showVerseForm(BuildContext context, {DailyVerse? existing}) {
+void _showThemeForm(BuildContext context, {PostTheme? existing}) {
   final cs = Theme.of(context).colorScheme;
-  final textCtrl = TextEditingController(text: existing?.text ?? '');
-  final sourceCtrl = TextEditingController(text: existing?.source ?? '');
-  bool isActive = existing?.isActive ?? true;
+  final nameCtrl = TextEditingController(text: existing?.name ?? '');
   bool isSaving = false;
 
   showModalBottomSheet(
@@ -1286,7 +1584,7 @@ void _showVerseForm(BuildContext context, {DailyVerse? existing}) {
             ),
             const SizedBox(height: 20),
             Text(
-              existing != null ? 'Editar versículo' : 'Novo versículo',
+              existing != null ? 'Editar tema' : 'Novo tema',
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -1294,59 +1592,33 @@ void _showVerseForm(BuildContext context, {DailyVerse? existing}) {
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: textCtrl,
+              controller: nameCtrl,
               style: TextStyle(color: cs.onSurface),
               decoration: const InputDecoration(
-                hintText: 'Frase do versículo...',
+                hintText: 'Nome do tema (ex: Oração, Testemunho)',
               ),
-              maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: sourceCtrl,
-              style: TextStyle(color: cs.onSurface),
-              decoration: const InputDecoration(
-                hintText: 'Referência (ex: Hebreus 11:1)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            SwitchListTile(
-              value: isActive,
-              onChanged: (v) => setSheetState(() => isActive = v),
-              title: Text('Ativo',
-                  style: TextStyle(color: cs.onSurface, fontSize: 14)),
-              activeTrackColor: cs.primary,
-              contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: isSaving
                   ? null
                   : () async {
-                      final text = textCtrl.text.trim();
-                      if (text.isEmpty) return;
+                      final name = nameCtrl.text.trim();
+                      if (name.isEmpty) return;
 
                       setSheetState(() => isSaving = true);
-
-                      final source = sourceCtrl.text.trim();
-                      final message = source.isNotEmpty
-                          ? '$text — $source'
-                          : text;
-
-                      final data = {
-                        'message': message,
-                        'is_active': isActive,
-                      };
 
                       final client = Supabase.instance.client;
                       if (existing != null) {
                         await client
-                            .from('daily_verses')
-                            .update(data)
+                            .from('post_themes')
+                            .update({'name': name})
                             .eq('id', existing.id);
                       } else {
-                        await client.from('daily_verses').insert(data);
+                        await client
+                            .from('post_themes')
+                            .insert({'name': name});
                       }
 
                       if (ctx.mounted) Navigator.pop(ctx);
@@ -1360,7 +1632,7 @@ void _showVerseForm(BuildContext context, {DailyVerse? existing}) {
                     )
                   : Text(existing != null
                       ? 'Salvar alterações'
-                      : 'Salvar versículo'),
+                      : 'Salvar tema'),
             ),
           ],
         ),
