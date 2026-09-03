@@ -1,8 +1,8 @@
-int analyzeFaithLevel(String text) {
-  if (text.trim().isEmpty) return 5;
+double analyzeFaithLevel(String text) {
+  if (text.trim().isEmpty) return 5.0;
 
   final lower = text.toLowerCase();
-  int score = 5;
+  double score = 5.0;
 
   const beginner = [
     'curioso', 'curiosa', 'comecar', 'começar', 'inicio', 'início',
@@ -40,5 +40,5 @@ int analyzeFaithLevel(String text) {
   if (text.length > 100) score += 3;
   if (text.length > 300) score += 5;
 
-  return score.clamp(5, 50);
+  return score.clamp(5.0, 50.0);
 }

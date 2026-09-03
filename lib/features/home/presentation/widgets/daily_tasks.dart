@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme.dart';
-import '../../../auth/providers/user_profile_provider.dart';
-import '../../../home/providers/faith_history_provider.dart';
-import '../../../home/providers/faith_history_recorder.dart';
 import '../../../tasks/providers/tasks_provider.dart';
 
 class DailyTasks extends ConsumerStatefulWidget {
@@ -59,29 +55,15 @@ class _DailyTasksState extends ConsumerState<DailyTasks> {
     if (mounted) setState(() => _loaded = true);
   }
 
-  Future<void> _completeTask(String taskId, int points, {bool weekly = false}) async {
+  Future<void> _completeTask(String taskId, {bool weekly = false}) async {
     final ids = weekly ? _completedWeeklyIds : _completedDailyIds;
     if (ids.contains(taskId)) return;
-
-    final profile = ref.read(userProfileProvider).value;
-    if (profile == null) return;
-
-    final newPending = profile.pendingFaith + points;
-    final projectedFaith = (profile.faithLevel + newPending).clamp(0, 70);
 
     setState(() => ids.add(taskId));
 
     final prefs = await SharedPreferences.getInstance();
     final key = weekly ? 'completed_weekly_tasks' : 'completed_tasks';
     await prefs.setStringList(key, ids.toList());
-
-    await Supabase.instance.client
-        .from('profiles')
-        .update({'pending_faith': newPending})
-        .eq('id', profile.id);
-
-    await recordFaithSnapshot(profile.id, projectedFaith);
-    ref.invalidate(faithHistoryProvider);
   }
 
   @override
@@ -190,7 +172,7 @@ class _DailyTasksState extends ConsumerState<DailyTasks> {
                     borderRadius: BorderRadius.circular(14),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(14),
-                      onTap: done ? null : () => _completeTask(task.id, task.faithPoints, weekly: weekly),
+                      onTap: done ? null : () => _completeTask(task.id, weekly: weekly),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         child: Row(

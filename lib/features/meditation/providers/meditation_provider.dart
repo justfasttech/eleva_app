@@ -10,3 +10,12 @@ final meditationsProvider = StreamProvider<List<Meditation>>((ref) {
       .order('created_at', ascending: false)
       .map((rows) => rows.map(Meditation.fromMap).toList());
 });
+
+final meditationsByThemeProvider =
+    Provider.family<AsyncValue<List<Meditation>>, String?>((ref, themeId) {
+  final allMeditations = ref.watch(meditationsProvider);
+  if (themeId == null) return allMeditations;
+  return allMeditations.whenData(
+    (meditations) => meditations.where((m) => m.themeId == themeId).toList(),
+  );
+});

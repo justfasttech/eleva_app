@@ -84,7 +84,7 @@ class _FriendGridItem extends StatelessWidget {
   final String friendId;
   final String name;
   final int level;
-  final int faithLevel;
+  final double faithLevel;
 
   const _FriendGridItem({
     required this.friendId,

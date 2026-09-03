@@ -19,3 +19,12 @@ final readingsByCategoryProvider =
     (readings) => readings.where((r) => r.category == category).toList(),
   );
 });
+
+final readingsByThemeProvider =
+    Provider.family<AsyncValue<List<SpiritualReading>>, String?>((ref, themeId) {
+  final allReadings = ref.watch(spiritualReadingsProvider);
+  if (themeId == null) return allReadings;
+  return allReadings.whenData(
+    (readings) => readings.where((r) => r.themeId == themeId).toList(),
+  );
+});

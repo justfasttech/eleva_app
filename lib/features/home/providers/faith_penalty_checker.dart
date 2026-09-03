@@ -7,17 +7,41 @@ import 'faith_history_provider.dart';
 import 'faith_history_recorder.dart';
 
 class FaithPenaltyChecker {
+  static Future<Map<String, double>> _loadPenaltyConfig() async {
+    try {
+      final rows = await Supabase.instance.client
+          .from('app_config')
+          .select('key, value')
+          .inFilter('key', ['diary_penalty', 'inactivity_penalty']);
+      final config = <String, double>{};
+      for (final row in rows) {
+        config[row['key'] as String] =
+            double.tryParse(row['value'] as String) ?? 0;
+      }
+      return config;
+    } catch (_) {
+      return {};
+    }
+  }
+
   static Future<void> check(WidgetRef ref) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
+    final config = await _loadPenaltyConfig();
+    final inactivityPenalty = config['inactivity_penalty'] ?? -3.0;
+    final diaryPenalty = config['diary_penalty'] ?? -5.0;
 
     var applied = false;
 
-    if (await _checkInactivity(prefs, today, user.id)) applied = true;
-    if (await _checkDiaryAbsence(prefs, today, user.id)) applied = true;
+    if (await _checkInactivity(prefs, today, user.id, inactivityPenalty)) {
+      applied = true;
+    }
+    if (await _checkDiaryAbsence(prefs, today, user.id, diaryPenalty)) {
+      applied = true;
+    }
 
     await prefs.setString('last_active_date', today);
 
@@ -27,7 +51,8 @@ class FaithPenaltyChecker {
     }
   }
 
-  static Future<bool> _checkInactivity(SharedPreferences prefs, String today, String userId) async {
+  static Future<bool> _checkInactivity(
+      SharedPreferences prefs, String today, String userId, double penalty) async {
     final lastActive = prefs.getString('last_active_date');
     if (lastActive == null) return false;
 
@@ -40,13 +65,14 @@ class FaithPenaltyChecker {
     final penaltyKey = 'inactivity_penalty_$today';
     if (prefs.getBool(penaltyKey) == true) return false;
 
-    await _applyPenalty(userId, -3);
+    await _applyPenalty(userId, penalty);
     await prefs.setBool(penaltyKey, true);
 
     return true;
   }
 
-  static Future<bool> _checkDiaryAbsence(SharedPreferences prefs, String today, String userId) async {
+  static Future<bool> _checkDiaryAbsence(
+      SharedPreferences prefs, String today, String userId, double penalty) async {
     final penaltyKey = 'diary_penalty_$today';
     if (prefs.getBool(penaltyKey) == true) return false;
 
@@ -73,7 +99,7 @@ class FaithPenaltyChecker {
 
       if (daysSince < 7) return false;
 
-      await _applyPenalty(userId, -5);
+      await _applyPenalty(userId, penalty);
       await prefs.setBool(penaltyKey, true);
       await prefs.setString('last_diary_penalty_date', today);
 
@@ -83,17 +109,17 @@ class FaithPenaltyChecker {
     }
   }
 
-  static Future<void> _applyPenalty(String userId, int amount) async {
+  static Future<void> _applyPenalty(String userId, double amount) async {
     final profile = await Supabase.instance.client
         .from('profiles')
         .select('faith_level, pending_faith')
         .eq('id', userId)
         .single();
 
-    final currentFaith = (profile['faith_level'] as int?) ?? 0;
-    final currentPending = (profile['pending_faith'] as int?) ?? 0;
+    final currentFaith = (profile['faith_level'] as num?)?.toDouble() ?? 0.0;
+    final currentPending = (profile['pending_faith'] as num?)?.toDouble() ?? 0.0;
     final newPending = currentPending + amount;
-    final projectedFaith = (currentFaith + newPending).clamp(0, 70);
+    final projectedFaith = (currentFaith + newPending).clamp(0.0, 70.0).toDouble();
 
     await Supabase.instance.client
         .from('profiles')

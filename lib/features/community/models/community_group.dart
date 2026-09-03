@@ -46,6 +46,8 @@ class CommunityGroup {
     'menu_book_rounded': Icons.menu_book_rounded,
     'spa_rounded': Icons.spa_rounded,
     'people_rounded': Icons.people_rounded,
+    'quiz_rounded': Icons.quiz_rounded,
+    'settings_rounded': Icons.settings_rounded,
     'groups_rounded': Icons.groups_rounded,
     'favorite_rounded': Icons.favorite_rounded,
     'church_rounded': Icons.church_rounded,

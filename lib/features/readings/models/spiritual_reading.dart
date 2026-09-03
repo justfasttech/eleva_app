@@ -5,8 +5,11 @@ class SpiritualReading {
   final String category;
   final String? author;
   final String? reference;
-  final int faithPoints;
+  final String? audioUrl;
+  final String? audioFileName;
+  final double faithPoints;
   final int level;
+  final String themeId;
   final bool isPublished;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -18,8 +21,11 @@ class SpiritualReading {
     required this.category,
     this.author,
     this.reference,
+    this.audioUrl,
+    this.audioFileName,
     required this.faithPoints,
     this.level = 1,
+    required this.themeId,
     required this.isPublished,
     required this.createdAt,
     required this.updatedAt,
@@ -33,8 +39,11 @@ class SpiritualReading {
       category: map['category'] as String,
       author: map['author'] as String?,
       reference: map['reference'] as String?,
-      faithPoints: map['faith_points'] as int? ?? 1,
+      audioUrl: map['audio_url'] as String?,
+      audioFileName: map['audio_file_name'] as String?,
+      faithPoints: (map['faith_points'] as num?)?.toDouble() ?? 1.0,
       level: map['level'] as int? ?? 1,
+      themeId: map['theme_id'] as String? ?? '',
       isPublished: map['is_published'] as bool? ?? true,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -48,8 +57,11 @@ class SpiritualReading {
       'category': category,
       'author': author,
       'reference': reference,
+      'audio_url': audioUrl,
+      'audio_file_name': audioFileName,
       'faith_points': faithPoints,
       'level': level,
+      'theme_id': themeId,
       'is_published': isPublished,
     };
   }
@@ -63,4 +75,5 @@ class SpiritualReading {
   };
 
   String get categoryLabel => categories[category]?.label ?? category;
+  bool get hasAudio => audioUrl != null && audioUrl!.isNotEmpty;
 }

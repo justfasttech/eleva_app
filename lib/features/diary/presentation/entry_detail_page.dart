@@ -88,6 +88,8 @@ class _EntryDetailPageState extends ConsumerState<EntryDetailPage> {
       MaterialPageRoute(
         builder: (_) => StatefulBuilder(
           builder: (context, setSheetState) {
+            int editCharCount = contentCtrl.text.length;
+
             return Scaffold(
               backgroundColor: ElevaColors.white,
               appBar: AppBar(
@@ -173,12 +175,29 @@ class _EntryDetailPageState extends ConsumerState<EntryDetailPage> {
                           TextFormField(
                             controller: contentCtrl,
                             maxLines: null,
-                            minLines: 10,
+                            minLines: 3,
+                            maxLength: 50,
                             decoration: const InputDecoration(
                               hintText: 'Escreva sua reflexão...',
                               alignLabelWithHint: true,
+                              counterText: '',
                             ),
                             textCapitalization: TextCapitalization.sentences,
+                            onChanged: (_) => setSheetState(() {
+                              editCharCount = contentCtrl.text.length;
+                            }),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '$editCharCount/50 caracteres',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: editCharCount <= 50 ? Colors.green : Colors.red.shade400,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -195,6 +214,16 @@ class _EntryDetailPageState extends ConsumerState<EntryDetailPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Escreva algo antes de salvar'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (content.length > 50) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Limite de 50 caracteres excedido (${content.length}/50)'),
                                 backgroundColor: Colors.red,
                               ),
                             );

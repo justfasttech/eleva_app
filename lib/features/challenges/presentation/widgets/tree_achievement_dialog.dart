@@ -1,52 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme.dart';
+import '../../../home/providers/tree_messages_provider.dart';
 
-class TreeAchievementDialog extends StatelessWidget {
+class TreeAchievementDialog extends ConsumerStatefulWidget {
   final int level;
 
   const TreeAchievementDialog({super.key, required this.level});
 
-  static const _treeLevels = [
-    '', // 0 - nunca mostrado
-    'Semente',
-    'Broto',
-    'Raiz',
-    'Crescimento',
-    'Fortalecimento',
-    'Enraizamento',
-    'Florescimento',
-    'Frutificação',
-    'Abundância',
-    'Maturidade',
-    'Sabedoria',
-    'Resiliência',
-    'Plenitude',
-    'Árvore da Vida',
-  ];
+  @override
+  ConsumerState<TreeAchievementDialog> createState() =>
+      _TreeAchievementDialogState();
+}
 
-  static const _treeMessages = [
-    '', // 0 - nunca mostrado
-    'A fé está nascendo no seu coração. Tudo começa aqui.',
-    'Um broto surge! Sua jornada espiritual começa a tomar forma.',
-    'Suas raízes estão se firmando na Palavra de Deus.',
-    'Sua fé está crescendo e se fortalecendo através da oração.',
-    'Você está se fortalecendo espiritualmente a cada dia.',
-    'Sua fé já tem base sólida. Você se mantém firme nas dificuldades.',
-    'Flores desabrocham! Sua vida espiritual está florescendo.',
-    'Você começa a dar frutos e impactar outras vidas com o amor de Deus.',
-    'A abundância de Deus se manifesta na sua caminhada de fé.',
-    'Sua fé é sólida e madura. Você anda com Deus diariamente.',
-    'A sabedoria divina guia seus passos e decisões.',
-    'Sua fé é resiliente. Nenhuma tempestade abala suas raízes.',
-    'Você vive o propósito de Deus em plenitude e inspira muitos ao redor.',
-    'Sua fé é uma Árvore da Vida — inspiração para gerações.',
-  ];
+class _TreeAchievementDialogState
+    extends ConsumerState<TreeAchievementDialog> {
+  AudioPlayer? _audioPlayer;
+
+  @override
+  void dispose() {
+    _audioPlayer?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playAudio(String url) async {
+    try {
+      _audioPlayer ??= AudioPlayer();
+      await _audioPlayer!.setUrl(url);
+      _audioPlayer!.play();
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
-    final message = level < _treeMessages.length ? _treeMessages[level] : '';
-    final levelName = level < _treeLevels.length ? _treeLevels[level] : '';
+    final messagesAsync = ref.watch(treeMessagesProvider);
+
+    String levelName = '';
+    String message = '';
+    String? audioUrl;
+
+    messagesAsync.whenData((messages) {
+      final match =
+          messages.where((m) => m.level == widget.level).toList();
+      if (match.isNotEmpty) {
+        levelName = match.first.name;
+        message = match.first.message;
+        audioUrl = match.first.audioUrl;
+      }
+    });
 
     return Dialog(
       backgroundColor: Colors.white,
@@ -80,7 +83,7 @@ class TreeAchievementDialog extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
-                  'assets/images/trees/$level.png',
+                  'assets/images/trees/${widget.level}.png',
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(
@@ -102,6 +105,18 @@ class TreeAchievementDialog extends StatelessWidget {
                 height: 1.5,
               ),
             ),
+            if (audioUrl != null && audioUrl!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => _playAudio(audioUrl!),
+                icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                label: const Text('Ouvir mensagem'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ElevaColors.gold,
+                  side: const BorderSide(color: ElevaColors.gold),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {

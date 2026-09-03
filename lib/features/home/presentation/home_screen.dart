@@ -6,8 +6,19 @@ import '../../challenges/presentation/challenges_page.dart';
 import '../../community/presentation/community_page.dart';
 import '../../diary/presentation/diary_page.dart';
 import '../../profile/presentation/profile_page.dart';
-import '../providers/hourly_faith_merger.dart';
+import '../providers/daily_faith_merger.dart';
 import 'dashboard_page.dart';
+
+final homeTabIndexProvider = NotifierProvider<HomeTabIndexNotifier, int>(
+  HomeTabIndexNotifier.new,
+);
+
+class HomeTabIndexNotifier extends Notifier<int> {
+  @override
+  int build() => 2;
+
+  void setIndex(int index) => state = index;
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -17,14 +28,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _currentIndex = 2;
-
   @override
   Widget build(BuildContext context) {
-    ref.watch(hourlyFaithMergerProvider);
+    ref.watch(dailyFaithMergerProvider);
+    final currentIndex = ref.watch(homeTabIndexProvider);
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: const [
           ChallengesPage(),
           DiaryPage(),
@@ -40,8 +50,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          currentIndex: currentIndex,
+          onTap: (index) => ref.read(homeTabIndexProvider.notifier).setIndex(index),
           type: BottomNavigationBarType.fixed,
           backgroundColor: ElevaColors.white,
           selectedItemColor: ElevaColors.gold,

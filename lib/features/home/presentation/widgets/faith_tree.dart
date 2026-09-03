@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme.dart';
 
 class FaithTree extends StatelessWidget {
-  final int faithPoints;
+  final double faithPoints;
 
   const FaithTree({super.key, required this.faithPoints});
 
-  int get level => (faithPoints ~/ 5).clamp(0, 14);
-  int get percentage => faithPoints.clamp(0, 70);
+  int get level => (faithPoints / 5).floor().clamp(0, 14);
+  double get percentage => faithPoints.clamp(0.0, 70.0);
 
   @override
   Widget build(BuildContext context) {

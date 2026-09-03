@@ -3,12 +3,12 @@ class UserProfile {
   final String email;
   final String name;
   final DateTime createdAt;
-  final int faithLevel;
+  final double faithLevel;
   final String subscriptionStatus;
   final bool isAdmin;
   final bool onboardingCompleted;
   final String faithDescription;
-  final int pendingFaith;
+  final double pendingFaith;
 
   const UserProfile({
     required this.id,
@@ -29,12 +29,12 @@ class UserProfile {
       email: map['email'] as String? ?? '',
       name: map['name'] as String? ?? '',
       createdAt: DateTime.parse(map['created_at'] as String),
-      faithLevel: map['faith_level'] as int? ?? 0,
+      faithLevel: (map['faith_level'] as num?)?.toDouble() ?? 0.0,
       subscriptionStatus: map['subscription_status'] as String? ?? 'free',
       isAdmin: map['is_admin'] as bool? ?? false,
       onboardingCompleted: map['onboarding_completed'] as bool? ?? false,
       faithDescription: map['faith_description'] as String? ?? '',
-      pendingFaith: map['pending_faith'] as int? ?? 0,
+      pendingFaith: (map['pending_faith'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

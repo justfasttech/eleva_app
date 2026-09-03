@@ -1,7 +1,7 @@
 class FriendData {
   final String id;
   final String name;
-  final int faithLevel;
+  final double faithLevel;
 
   const FriendData({
     required this.id,
@@ -9,5 +9,5 @@ class FriendData {
     required this.faithLevel,
   });
 
-  int get treeLevel => (faithLevel ~/ 5).clamp(0, 14);
+  int get treeLevel => (faithLevel / 5).floor().clamp(0, 14);
 }

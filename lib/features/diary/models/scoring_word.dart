@@ -1,7 +1,7 @@
 class ScoringWord {
   final String id;
   final String word;
-  final int points;
+  final double points;
   final DateTime createdAt;
 
   const ScoringWord({
@@ -15,7 +15,7 @@ class ScoringWord {
     return ScoringWord(
       id: map['id'] as String,
       word: map['word'] as String,
-      points: map['points'] as int,
+      points: (map['points'] as num).toDouble(),
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }

@@ -5,7 +5,7 @@ import '../../auth/providers/auth_provider.dart';
 
 class FaithHistoryEntry {
   final DateTime date;
-  final int faithLevel;
+  final double faithLevel;
 
   const FaithHistoryEntry({required this.date, required this.faithLevel});
 }
@@ -25,7 +25,7 @@ final faithHistoryProvider =
   final entries = (response as List)
       .map((row) => FaithHistoryEntry(
             date: DateTime.parse(row['recorded_date'] as String),
-            faithLevel: row['faith_level'] as int,
+            faithLevel: (row['faith_level'] as num).toDouble(),
           ))
       .toList()
       .reversed

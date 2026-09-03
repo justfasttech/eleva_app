@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme.dart';
+import '../../content_themes/presentation/theme_selection_screen.dart';
 import '../models/diary_entry.dart';
 import '../providers/scoring_words_provider.dart';
 import '../utils/faith_penalty.dart';
@@ -26,9 +27,22 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   final _contentController = TextEditingController();
   String _selectedMood = 'neutral';
   bool _isSaving = false;
+  int _charCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _contentController.addListener(_updateCharCount);
+  }
+
+  void _updateCharCount() {
+    final count = _contentController.text.length;
+    if (count != _charCount) setState(() => _charCount = count);
+  }
 
   @override
   void dispose() {
+    _contentController.removeListener(_updateCharCount);
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
@@ -40,6 +54,16 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Escreva algo antes de salvar'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_charCount > 50) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Limite de 50 caracteres excedido ($_charCount/50)'),
           backgroundColor: Colors.red,
         ),
       );
@@ -73,6 +97,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             backgroundColor: ElevaColors.gold,
           ),
         );
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ThemeSelectionScreen(contentType: 'quiz'),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -175,12 +207,26 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                   TextFormField(
                     controller: _contentController,
                     maxLines: null,
-                    minLines: 10,
+                    minLines: 3,
+                    maxLength: 50,
                     decoration: const InputDecoration(
-                      hintText: 'Escreva sua reflexão, testemunho ou pensamento...',
+                      hintText: 'Escreva sua reflexão...',
                       alignLabelWithHint: true,
+                      counterText: '',
                     ),
                     textCapitalization: TextCapitalization.sentences,
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '$_charCount/50 caracteres',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _charCount <= 50 ? Colors.green : Colors.red.shade400,
+                      ),
+                    ),
                   ),
                 ],
               ),

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme.dart';
+import 'pages/admin_activities_page.dart';
 import 'pages/admin_community_page.dart';
+import 'pages/admin_config_page.dart';
 import 'pages/admin_content_page.dart';
 import 'pages/admin_notifications_page.dart';
+import 'pages/admin_quizzes_page.dart';
 import 'pages/admin_users_page.dart';
 
 class _AdminColors {
@@ -36,17 +39,33 @@ class _AdminScreenState extends State<AdminScreen> {
   int _currentIndex = 0;
   bool _isDark = true;
 
-  static const _drawerItems = [
-    (icon: Icons.library_books_rounded, label: 'Conteudos'),
-    (icon: Icons.people_rounded, label: 'Usuarios'),
-    (icon: Icons.forum_rounded, label: 'Comunidade'),
-    (icon: Icons.notifications_rounded, label: 'Notificacoes'),
+  static const _drawerIcons = <IconData>[
+    Icons.menu_book_rounded,
+    Icons.quiz_rounded,
+    Icons.task_alt_rounded,
+    Icons.people_rounded,
+    Icons.forum_rounded,
+    Icons.settings_rounded,
+    Icons.notifications_rounded,
+  ];
+
+  static const _drawerLabels = <String>[
+    'Conteudo',
+    'Quizzes',
+    'Atividades',
+    'Usuarios',
+    'Comunidade',
+    'Configuracoes',
+    'Notificacoes',
   ];
 
   final _pages = const [
     AdminContentPage(),
+    AdminQuizzesPage(),
+    AdminActivitiesPage(),
     AdminUsersPage(),
     AdminCommunityPage(),
+    AdminConfigPage(),
     AdminNotificationsPage(),
   ];
 
@@ -154,7 +173,7 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                _drawerItems[_currentIndex].label,
+                _drawerLabels[_currentIndex],
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -243,8 +262,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...List.generate(_drawerItems.length, (i) {
-                  final item = _drawerItems[i];
+                ...List.generate(_drawerLabels.length, (i) {
                   final isSelected = _currentIndex == i;
                   return Padding(
                     padding: const EdgeInsets.symmetric(
@@ -265,15 +283,15 @@ class _AdminScreenState extends State<AdminScreen> {
                           child: Row(
                             children: [
                               Icon(
-                                item.icon,
+                                _drawerIcons[i],
                                 size: 22,
                                 color: isSelected
                                     ? _AdminColors.accent
-                                    : _textSecondary,
+                                    : _textPrimary,
                               ),
                               const SizedBox(width: 14),
                               Text(
-                                item.label,
+                                _drawerLabels[i],
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: isSelected

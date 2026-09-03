@@ -119,7 +119,7 @@ class _AdminUsersPageState extends ConsumerState<AdminUsersPage> {
                           final user = filtered[i];
                           final name = user['name'] as String? ?? 'Sem nome';
                           final email = user['email'] as String? ?? '';
-                          final faith = user['faith_level'] as int? ?? 0;
+                          final faith = (user['faith_level'] as num?)?.toDouble() ?? 0.0;
                           final status = user['subscription_status'] as String? ?? 'free';
                           final avatar = name.isNotEmpty ? name[0].toUpperCase() : '?';
 

@@ -1,7 +1,7 @@
 class DailyTask {
   final String id;
   final String title;
-  final int faithPoints;
+  final double faithPoints;
   final bool isActive;
   final String frequency;
   final DateTime createdAt;
@@ -21,7 +21,7 @@ class DailyTask {
     return DailyTask(
       id: map['id'] as String,
       title: map['title'] as String,
-      faithPoints: map['faith_points'] as int? ?? 1,
+      faithPoints: (map['faith_points'] as num?)?.toDouble() ?? 1.0,
       isActive: map['is_active'] as bool? ?? true,
       frequency: map['frequency'] as String? ?? 'daily',
       createdAt: DateTime.parse(map['created_at'] as String),

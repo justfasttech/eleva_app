@@ -62,7 +62,7 @@ final acceptedFriendsProvider = FutureProvider<List<FriendData>>((ref) async {
       .map((p) => FriendData(
             id: p['id'] as String,
             name: p['name'] as String? ?? '',
-            faithLevel: p['faith_level'] as int? ?? 0,
+            faithLevel: (p['faith_level'] as num?)?.toDouble() ?? 0.0,
           ))
       .toList();
 });

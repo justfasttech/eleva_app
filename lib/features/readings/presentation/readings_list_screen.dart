@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme.dart';
-import '../../auth/providers/user_profile_provider.dart';
 import '../models/spiritual_reading.dart';
 import '../providers/readings_provider.dart';
+import '../../unlocks/providers/unlocks_provider.dart';
 import 'reading_detail_screen.dart';
 
 class ReadingsListScreen extends ConsumerStatefulWidget {
   final String? initialCategory;
+  final String? themeId;
+  final String? themeName;
 
-  const ReadingsListScreen({super.key, this.initialCategory});
+  const ReadingsListScreen({
+    super.key,
+    this.initialCategory,
+    this.themeId,
+    this.themeName,
+  });
 
   @override
   ConsumerState<ReadingsListScreen> createState() => _ReadingsListScreenState();
@@ -36,54 +43,62 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final readingsAsync = ref.watch(readingsByCategoryProvider(_selectedCategory));
-    final profile = ref.watch(userProfileProvider).value;
-    final faithLevel = profile?.faithLevel ?? 0;
-    final userReadingLevel = ((faithLevel ~/ 10) + 1).clamp(1, 7);
+    final AsyncValue<List<SpiritualReading>> readingsAsync;
+    if (widget.themeId != null) {
+      readingsAsync = ref.watch(readingsByThemeProvider(widget.themeId));
+    } else {
+      readingsAsync = ref.watch(readingsByCategoryProvider(_selectedCategory));
+    }
+
+    final unlockedIds = ref.watch(unlockedContentIdsProvider);
+    final canUnlockAsync = ref.watch(canUnlockTodayProvider('reading'));
 
     return Scaffold(
       backgroundColor: ElevaColors.white,
       appBar: AppBar(
-        title: const Text(
-          'Leituras Espirituais',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        title: Text(
+          widget.themeName != null
+              ? 'Leituras - ${widget.themeName}'
+              : 'Leituras Espirituais',
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
         ),
       ),
       body: Column(
         children: [
-          SizedBox(
-            height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: _categoryFilters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final filter = _categoryFilters[i];
-                final selected = _selectedCategory == filter.value;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedCategory = filter.value),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected ? ElevaColors.gold : ElevaColors.offWhite,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      filter.label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: selected ? Colors.white : ElevaColors.textMuted,
+          if (widget.themeId == null)
+            SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: _categoryFilters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final filter = _categoryFilters[i];
+                  final selected = _selectedCategory == filter.value;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedCategory = filter.value),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected ? ElevaColors.gold : ElevaColors.offWhite,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        filter.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: selected ? Colors.white : ElevaColors.textMuted,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+          if (widget.themeId == null) const SizedBox(height: 16),
           Expanded(
             child: readingsAsync.when(
               loading: () => const Center(
@@ -109,8 +124,8 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
                     ),
                   );
                 }
-                final unlocked = published.where((r) => r.level <= userReadingLevel).toList();
-                final locked = published.where((r) => r.level > userReadingLevel).toList();
+                final unlocked = published.where((r) => unlockedIds.contains(r.id)).toList();
+                final locked = published.where((r) => !unlockedIds.contains(r.id)).toList();
                 final allItems = [...unlocked, ...locked];
 
                 return ListView.separated(
@@ -119,14 +134,89 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, i) {
                     final reading = allItems[i];
-                    if (reading.level > userReadingLevel) {
-                      return _LockedReadingCard(reading: reading);
+                    final isUnlocked = unlockedIds.contains(reading.id);
+                    if (!isUnlocked) {
+                      return _LockedReadingCard(
+                        reading: reading,
+                        onTap: () => _handleLockedTap(context, reading, canUnlockAsync),
+                      );
                     }
                     return _ReadingCard(reading: reading);
                   },
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleLockedTap(
+    BuildContext context,
+    SpiritualReading reading,
+    AsyncValue<bool> canUnlockAsync,
+  ) {
+    final canUnlock = canUnlockAsync.value ?? false;
+
+    if (!canUnlock) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Você já desbloqueou uma leitura hoje. Volte amanhã após as 7h.'),
+            backgroundColor: ElevaColors.textMuted,
+          ),
+        );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ElevaColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Desbloquear leitura?',
+            style: TextStyle(color: ElevaColors.textDark)),
+        content: Text(
+          '"${reading.title}"\n\nVocê pode desbloquear 1 leitura por dia.',
+          style: const TextStyle(color: ElevaColors.textMuted),
+        ),
+        actions: [
+
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await unlockContent(
+                contentType: 'reading',
+                contentId: reading.id,
+                faithPoints: reading.faithPoints,
+              );
+              if (success && context.mounted) {
+                ref.invalidate(canUnlockTodayProvider('reading'));
+                ref.invalidate(userUnlocksProvider);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReadingDetailScreen(reading: reading),
+                  ),
+                );
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Não foi possível desbloquear. Tente novamente.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+              }
+            },
+            child: const Text('Desbloquear'),
+          ),          SizedBox(height:10),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
           ),
         ],
       ),
@@ -224,13 +314,14 @@ class _ReadingCard extends StatelessWidget {
 
 class _LockedReadingCard extends StatelessWidget {
   final SpiritualReading reading;
+  final VoidCallback onTap;
 
-  const _LockedReadingCard({required this.reading});
+  const _LockedReadingCard({required this.reading, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.5,
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -266,14 +357,12 @@ class _LockedReadingCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   const Text(
-                    'Será desbloqueada no futuro',
+                    'Toque para desbloquear',
                     style: TextStyle(fontSize: 12, color: ElevaColors.textMuted),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.lock_outline_rounded,
-                size: 18, color: ElevaColors.textMuted),
           ],
         ),
       ),

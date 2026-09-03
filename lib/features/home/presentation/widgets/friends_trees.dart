@@ -82,7 +82,7 @@ class _FriendTreeCard extends StatelessWidget {
   final String friendId;
   final String name;
   final int level;
-  final int faithLevel;
+  final double faithLevel;
 
   const _FriendTreeCard({
     required this.friendId,
