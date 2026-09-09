@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../auth/providers/user_profile_provider.dart';
 import '../models/user_content_unlock.dart';
 
 final userUnlocksProvider = StreamProvider<List<UserContentUnlock>>((ref) {
@@ -25,6 +26,9 @@ final unlockedContentIdsProvider = Provider<Set<String>>((ref) {
 
 final canUnlockTodayProvider =
     FutureProvider.family<bool, String>((ref, contentType) async {
+  final profile = ref.watch(userProfileProvider).value;
+  if (profile != null && profile.isPremium) return true;
+
   final userId = Supabase.instance.client.auth.currentUser?.id;
   if (userId == null) return false;
 

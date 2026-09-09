@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth_error_translator.dart';
 import '../../../core/theme.dart';
+import '../../subscription/presentation/paywall_screen.dart';
+import '../../subscription/presentation/subscription_status_card.dart';
 import 'edit_profile_page.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -41,7 +43,20 @@ class ProfilePage extends ConsumerWidget {
                 color: ElevaColors.textMuted,
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+            const SubscriptionStatusCard(),
+            const SizedBox(height: 20),
+            _ProfileTile(
+              icon: Icons.workspace_premium_rounded,
+              title: 'Gerenciar assinatura',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const PaywallScreen(),
+                  ),
+                );
+              },
+            ),
             _ProfileTile(
               icon: Icons.edit_rounded,
               title: 'Editar perfil',

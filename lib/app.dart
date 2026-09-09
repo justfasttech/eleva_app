@@ -12,6 +12,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/providers/user_profile_provider.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
+import 'features/subscription/presentation/paywall_screen.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -79,6 +80,7 @@ class _AppState extends ConsumerState<App> {
               }
               if (profile.isAdmin) return const AdminScreen();
               if (!profile.onboardingCompleted) return const OnboardingScreen();
+              if (!profile.isPremium) return const PaywallScreen();
               return const HomeScreen();
             },
           );

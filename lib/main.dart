@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/supabase_config.dart';
+import 'features/subscription/services/revenuecat_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,13 @@ Future<void> main() async {
     );
   } catch (e) {
     debugPrint('Supabase init error: $e');
+  }
+
+  if (!kIsWeb) {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      await RevenueCatService.init(userId: userId);
+    }
   }
 
   runApp(const ProviderScope(child: App()));
