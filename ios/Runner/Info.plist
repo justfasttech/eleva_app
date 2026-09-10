@@ -41,6 +41,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Eleva precisa acessar suas fotos para que você possa escolher uma imagem de perfil ou compartilhar conteúdo.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>O Eleva precisa acessar a câmera para que você possa tirar fotos para seu perfil ou compartilhar momentos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O Eleva precisa acessar o microfone para gravação de áudio nas meditações guiadas.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O Eleva pode usar sua localização para personalizar conteúdos e eventos próximos a você.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
