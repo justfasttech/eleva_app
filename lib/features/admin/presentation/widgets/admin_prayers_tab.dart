@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../prayers/models/prayer.dart';
 import '../../../prayers/providers/prayers_provider.dart';
 import '../../../content_themes/providers/content_themes_provider.dart';
+import '../../services/ai_content_service.dart';
 
 class AdminPrayersTab extends ConsumerWidget {
   const AdminPrayersTab({super.key});
@@ -195,6 +196,7 @@ void _showPrayerForm(BuildContext context, WidgetRef ref,
   String? selectedThemeId = existing?.themeId;
   bool isPublished = existing?.isPublished ?? true;
   bool isSaving = false;
+  bool isGenerating = false;
 
   final themes = ref.read(contentThemesProvider).value ?? [];
 
@@ -385,6 +387,61 @@ void _showPrayerForm(BuildContext context, WidgetRef ref,
                         setSheetState(() => selectedThemeId = v);
                       }
                     },
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isGenerating
+                          ? null
+                          : () async {
+                              if (selectedThemeId == null) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Selecione um tema antes de gerar com IA'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+                              setSheetState(() => isGenerating = true);
+                              try {
+                                final themeName = themes
+                                    .firstWhere((t) => t.id == selectedThemeId)
+                                    .name;
+                                final result =
+                                    await AiContentService.generatePrayer(
+                                  themeName: themeName,
+                                );
+                                setSheetState(() {
+                                  titleCtrl.text = result['title'] ?? '';
+                                  contentCtrl.text = result['content'] ?? '';
+                                });
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Erro ao gerar: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                setSheetState(() => isGenerating = false);
+                              }
+                            },
+                      icon: isGenerating
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: cs.primary),
+                            )
+                          : Icon(Icons.auto_awesome, color: cs.primary),
+                      label: Text(isGenerating
+                          ? 'Gerando...'
+                          : 'Gerar com IA'),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Container(

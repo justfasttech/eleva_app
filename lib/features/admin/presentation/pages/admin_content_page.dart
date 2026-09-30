@@ -12,6 +12,7 @@ import '../../../meditation/models/meditation.dart';
 import '../../../meditation/providers/meditation_provider.dart';
 import '../../../meditation/presentation/meditation_player_screen.dart';
 import '../../../content_themes/providers/content_themes_provider.dart';
+import '../../services/ai_content_service.dart';
 
 class AdminContentPage extends StatefulWidget {
   const AdminContentPage({super.key});
@@ -522,6 +523,7 @@ void _showReadingForm(BuildContext context, WidgetRef ref, {SpiritualReading? ex
   String? selectedThemeId = existing?.themeId.isEmpty == true ? null : existing?.themeId;
   bool isPublished = existing?.isPublished ?? true;
   bool isSaving = false;
+  bool isGenerating = false;
   final themes = ref.read(contentThemesProvider).value ?? [];
 
   String? uploadedAudioUrl = existing?.audioUrl;
@@ -687,6 +689,64 @@ void _showReadingForm(BuildContext context, WidgetRef ref, {SpiritualReading? ex
                     onChanged: (v) {
                       if (v != null) setSheetState(() => selectedThemeId = v);
                     },
+                  ),
+
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isGenerating
+                          ? null
+                          : () async {
+                              if (selectedThemeId == null) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Selecione um tema antes de gerar com IA'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+                              setSheetState(() => isGenerating = true);
+                              try {
+                                final themeName = themes
+                                    .firstWhere((t) => t.id == selectedThemeId)
+                                    .name;
+                                final result =
+                                    await AiContentService.generateReading(
+                                  themeName: themeName,
+                                  category: selectedCategory,
+                                  level: selectedLevel,
+                                );
+                                setSheetState(() {
+                                  titleCtrl.text = result['title'] ?? '';
+                                  contentCtrl.text = result['content'] ?? '';
+                                });
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Erro ao gerar: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                setSheetState(() => isGenerating = false);
+                              }
+                            },
+                      icon: isGenerating
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: cs.primary),
+                            )
+                          : Icon(Icons.auto_awesome, color: cs.primary),
+                      label: Text(isGenerating
+                          ? 'Gerando...'
+                          : 'Gerar com IA'),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(

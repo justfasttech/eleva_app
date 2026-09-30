@@ -134,44 +134,130 @@
 
 # PARTE C — RevenueCat (unifica tudo)
 
-## 10. Configurar RevenueCat
+## 10. Criar conta e projeto no RevenueCat
 
-1. Acesse [app.revenuecat.com](https://app.revenuecat.com) e crie conta
-2. **Create New Project** → nome: `Eleva`
-3. **Add App → Google Play Store**
+1. Acesse [app.revenuecat.com](https://app.revenuecat.com)
+2. Crie uma conta (pode usar Google ou email)
+3. Clique **"Create New Project"**
+   - **Nome:** `Eleva`
+   - Clique **Create**
+
+---
+
+## 11. Adicionar app Android no RevenueCat
+
+1. No projeto Eleva, clique **"Add App"**
+2. Selecione **"Google Play Store"**
+3. Preencha:
+   - **App name:** `Eleva Android`
    - **Package Name:** `com.justfasttech.eleva`
-   - **Service Account JSON:** faça upload do arquivo que baixou no passo 4
-   - Copie a **Public API Key** (= `YOUR_GOOGLE_API_KEY` no código)
-4. **Add App → App Store**
+4. Na seção **"Service Account credentials"**:
+   - Faça upload do **Service Account JSON** (o arquivo que baixou no passo 4)
+5. Clique **Save**
+6. **Copie a "Public API Key"** que aparece — essa é a `YOUR_GOOGLE_API_KEY` do código
+
+---
+
+## 12. Adicionar app iOS no RevenueCat
+
+1. No projeto Eleva, clique **"Add App"** novamente
+2. Selecione **"App Store"**
+3. Preencha:
+   - **App name:** `Eleva iOS`
    - **Bundle ID:** `com.justfasttech.eleva`
-   - **App-Specific Shared Secret:** cole o segredo do passo 8
-   - Em **"App Store Connect API"**: cole o Key ID, Issuer ID e faça upload do `.p8` do passo 9
-   - Copie a **Public API Key** (= `YOUR_APPLE_API_KEY` no código)
+4. Na seção **"App-Specific Shared Secret"**:
+   - Vá no App Store Connect → seu app → **Recursos → Assinaturas**
+   - No canto superior: **"Segredo compartilhado do app"** → copie e cole aqui
+5. Na seção **"App Store Connect API"** (para validação de compras server-side):
+   - **Issuer ID:** cole o Issuer ID da sua API Key do App Store Connect
+   - **Key ID:** cole o Key ID
+   - **Private Key (.p8):** faça upload do arquivo `.p8`
+6. Clique **Save**
+7. **Copie a "Public API Key"** que aparece — essa é a `YOUR_APPLE_API_KEY` do código
 
 ---
 
-## 11. Criar Offering no RevenueCat
+## 13. Criar Entitlement no RevenueCat
 
-1. No dashboard: **Products → Entitlements**
-   - Crie: `premium` (identificador)
-2. **Products → Products**
-   - Adicione: `eleva_premium` (mesmo ID do Play Console)
-   - Vincule ao entitlement `premium`
-3. **Products → Offerings**
-   - O "Default" já existe — adicione um package com o produto `eleva_premium`
+O Entitlement representa o "direito" que o usuário ganha ao assinar.
+
+1. No menu lateral: **Project Settings → Entitlements** (ou **Products → Entitlements**)
+2. Clique **"New"**
+3. Preencha:
+   - **Identifier:** `premium`
+   - **Display name:** `Premium`
+4. Clique **Save**
 
 ---
 
-## 12. Atualizar o código
+## 14. Adicionar produtos no RevenueCat
 
-Depois de ter as **Public API Keys** do RevenueCat, entregue ao desenvolvedor para atualizar no arquivo:
+Vincule os produtos que você criou nas lojas ao RevenueCat.
+
+1. No menu lateral: **Products → Products**
+2. Clique **"New"**
+
+### Produto Android:
+- **Store:** Google Play Store
+- **Product identifier:** `eleva_premium` (mesmo ID criado no Google Play)
+- Clique **Add**
+- Na tela do produto, em **Entitlements** clique **Attach** → selecione `premium`
+
+### Produto iOS:
+- Clique **"New"** novamente
+- **Store:** App Store
+- **Product identifier:** `eleva_premium` (mesmo ID criado no App Store Connect)
+- Clique **Add**
+- Em **Entitlements** clique **Attach** → selecione `premium`
+
+---
+
+## 15. Criar Offering no RevenueCat
+
+O Offering é o "pacote" que o app mostra na paywall.
+
+1. No menu lateral: **Products → Offerings**
+2. Já existe um offering **"Default"** — clique nele
+3. Clique **"New Package"** (ou **"Add Package"**)
+4. Preencha:
+   - **Identifier:** selecione `$rc_monthly` (mensal)
+   - **Product:** selecione `eleva_premium` (Google Play)
+   - Adicione também o `eleva_premium` (App Store) para o mesmo package
+5. Clique **Save**
+
+> O offering "Default" é o que o SDK busca automaticamente com `getOfferings()`
+
+---
+
+## 16. Atualizar o código com as API Keys
+
+Depois de ter as **Public API Keys**, entregue ao desenvolvedor para atualizar no arquivo:
 ```
 lib/features/subscription/services/revenuecat_service.dart
 ```
 
 Substituir:
-- `YOUR_GOOGLE_API_KEY` → chave da app Android (passo 10.3)
-- `YOUR_APPLE_API_KEY` → chave da app iOS (passo 10.4)
+- `YOUR_GOOGLE_API_KEY` → Public API Key da app Android (passo 11.6)
+- `YOUR_APPLE_API_KEY` → Public API Key da app iOS (passo 12.7)
+
+---
+
+## 17. Testar no sandbox
+
+### Android:
+1. No Google Play Console → **Teste → Teste interno** → adicione seu email como testador
+2. Instale o app pelo link de teste interno
+3. As compras são simuladas (não cobra de verdade)
+
+### iOS:
+1. No App Store Connect → **Usuários e Acesso → Sandbox → Testers**
+2. Crie um **Sandbox Tester** (email fictício + senha)
+3. No iPhone, vá em **Ajustes → App Store → Conta Sandbox** → faça login com o tester
+4. Abra o app e teste a compra (não cobra de verdade)
+
+### RevenueCat Dashboard:
+- Em **Customers** você vê os usuários e o status das compras em tempo real
+- Em **Overview** vê métricas de receita
 
 ---
 

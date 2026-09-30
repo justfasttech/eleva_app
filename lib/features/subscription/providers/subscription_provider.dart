@@ -21,3 +21,8 @@ final subscriptionStatusProvider = Provider<String>((ref) {
   final profile = ref.watch(userProfileProvider).value;
   return profile?.subscriptionStatus ?? 'free';
 });
+
+final subscriptionPeriodProvider = Provider<String?>((ref) {
+  final profile = ref.watch(userProfileProvider).value;
+  return profile?.subscriptionPeriod;
+});

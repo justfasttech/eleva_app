@@ -12,6 +12,7 @@ class UserProfile {
   final DateTime? trialStartDate;
   final DateTime? subscriptionEndDate;
   final String? revenuecatId;
+  final String? subscriptionPeriod;
 
   const UserProfile({
     required this.id,
@@ -27,6 +28,7 @@ class UserProfile {
     this.trialStartDate,
     this.subscriptionEndDate,
     this.revenuecatId,
+    this.subscriptionPeriod,
   });
 
   bool get isTrialActive {
@@ -61,6 +63,7 @@ class UserProfile {
           ? DateTime.parse(map['subscription_end_date'] as String)
           : null,
       revenuecatId: map['revenuecat_id'] as String?,
+      subscriptionPeriod: map['subscription_period'] as String?,
     );
   }
 }

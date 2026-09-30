@@ -12,6 +12,7 @@ class SubscriptionStatusCard extends ConsumerWidget {
     final status = ref.watch(subscriptionStatusProvider);
     final trialDays = ref.watch(trialDaysRemainingProvider);
     final isTrialActive = ref.watch(isTrialActiveProvider);
+    final period = ref.watch(subscriptionPeriodProvider);
 
     final bool isPaid = status == 'premium';
 
@@ -43,7 +44,9 @@ class SubscriptionStatusCard extends ConsumerWidget {
               children: [
                 Text(
                   isPaid
-                      ? 'Premium'
+                      ? period == 'annual'
+                          ? 'Premium Anual'
+                          : 'Premium Mensal'
                       : isTrialActive
                           ? 'Período de teste'
                           : 'Plano gratuito',
@@ -56,7 +59,9 @@ class SubscriptionStatusCard extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   isPaid
-                      ? 'Acesso ilimitado a todo conteúdo'
+                      ? period == 'annual'
+                          ? 'Renova anualmente'
+                          : 'Renova mensalmente'
                       : isTrialActive
                           ? '$trialDays dias restantes'
                           : 'Assine para continuar',

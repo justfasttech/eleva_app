@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatService {
-  static const _googleApiKey = 'YOUR_GOOGLE_API_KEY';
-  static const _appleApiKey = 'YOUR_APPLE_API_KEY';
+  static const _googleApiKey = 'goog_ZgVxLKMtEIQfGWIgfWbtHfGXpSh';
+  static const _appleApiKey = 'appl_KsTRmgZkrWLsEhMRcURaxFPamvC';
 
   static bool _initialized = false;
 
@@ -34,8 +35,12 @@ class RevenueCatService {
     try {
       await Purchases.purchasePackage(package);
       return true;
-    } catch (_) {
-      return false;
+    } on PlatformException catch (e) {
+      final errorCode = PurchasesErrorHelper.getErrorCode(e);
+      if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
+        return false;
+      }
+      rethrow;
     }
   }
 
@@ -45,6 +50,16 @@ class RevenueCatService {
       return await Purchases.restorePurchases();
     } catch (_) {
       return null;
+    }
+  }
+
+  static Future<bool> hasPremiumEntitlement() async {
+    if (kIsWeb) return false;
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      return customerInfo.entitlements.all['premium']?.isActive == true;
+    } catch (_) {
+      return false;
     }
   }
 

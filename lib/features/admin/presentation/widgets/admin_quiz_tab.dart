@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../content_themes/providers/content_themes_provider.dart';
 import '../../../quiz/models/quiz.dart';
 import '../../../quiz/providers/quiz_provider.dart';
+import '../../services/ai_content_service.dart';
 
 class AdminQuizTab extends ConsumerStatefulWidget {
   const AdminQuizTab({super.key});
@@ -156,6 +157,7 @@ class _AdminQuizTabState extends ConsumerState<AdminQuizTab> {
         existing?.themeId.isEmpty == true ? null : existing?.themeId;
     bool isPublished = existing?.isPublished ?? true;
     bool isSaving = false;
+    bool isGenerating = false;
     final themes = ref.read(contentThemesProvider).value ?? [];
 
     showModalBottomSheet(
@@ -217,6 +219,110 @@ class _AdminQuizTabState extends ConsumerState<AdminQuizTab> {
                     if (v != null) setSheetState(() => selectedThemeId = v);
                   },
                 ),
+                if (existing == null) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isGenerating
+                          ? null
+                          : () async {
+                              if (selectedThemeId == null) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Selecione um tema antes de gerar com IA'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+                              setSheetState(() => isGenerating = true);
+                              try {
+                                final themeName = themes
+                                    .firstWhere(
+                                        (t) => t.id == selectedThemeId)
+                                    .name;
+                                final result =
+                                    await AiContentService.generateQuiz(
+                                  themeName: themeName,
+                                );
+
+                                final quizTitle =
+                                    result['title'] as String? ?? themeName;
+                                titleCtrl.text = quizTitle;
+
+                                final client = Supabase.instance.client;
+                                final quizRes = await client
+                                    .from('quizzes')
+                                    .insert({
+                                      'title': quizTitle,
+                                      'theme_id': selectedThemeId,
+                                      'is_published': isPublished,
+                                    })
+                                    .select()
+                                    .single();
+
+                                final quizId = quizRes['id'] as String;
+                                final questions =
+                                    result['questions'] as List<dynamic>? ??
+                                        [];
+
+                                for (var i = 0; i < questions.length; i++) {
+                                  final q =
+                                      questions[i] as Map<String, dynamic>;
+                                  await client
+                                      .from('quiz_questions')
+                                      .insert({
+                                    'quiz_id': quizId,
+                                    'question_text':
+                                        q['question_text'] ?? '',
+                                    'option_a': q['option_a'] ?? '',
+                                    'option_b': q['option_b'] ?? '',
+                                    'option_c': q['option_c'] ?? '',
+                                    'option_d': q['option_d'] ?? '',
+                                    'correct_option':
+                                        q['correct_option'] ?? 'a',
+                                    'order_index': i,
+                                  });
+                                }
+
+                                ref.invalidate(quizzesProvider);
+                                if (ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                  final newQuiz = Quiz.fromMap(quizRes);
+                                  _openQuestionsManager(ctx, newQuiz);
+                                }
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('Erro ao gerar quiz: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (ctx.mounted) {
+                                  setSheetState(
+                                      () => isGenerating = false);
+                                }
+                              }
+                            },
+                      icon: isGenerating
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: cs.primary),
+                            )
+                          : Icon(Icons.auto_awesome, color: cs.primary),
+                      label: Text(isGenerating
+                          ? 'Gerando quiz...'
+                          : 'Gerar Quiz com IA'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 SwitchListTile(
                   value: isPublished,

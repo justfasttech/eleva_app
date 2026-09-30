@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,6 +14,7 @@ import 'features/auth/providers/user_profile_provider.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/subscription/presentation/paywall_screen.dart';
+import 'features/subscription/services/revenuecat_service.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -35,8 +37,20 @@ class _AppState extends ConsumerState<App> {
       }
       if (data.event == AuthChangeEvent.signedOut && mounted) {
         setState(() => _isRecovery = false);
+        if (!kIsWeb) RevenueCatService.logOut();
+      }
+      if (data.event == AuthChangeEvent.signedIn && mounted) {
+        final userId = data.session?.user.id;
+        if (userId != null && !kIsWeb) {
+          _initRevenueCat(userId);
+        }
       }
     });
+  }
+
+  Future<void> _initRevenueCat(String userId) async {
+    await RevenueCatService.init(userId: userId);
+    await RevenueCatService.logIn(userId);
   }
 
   @override
