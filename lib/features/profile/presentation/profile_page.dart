@@ -8,6 +8,7 @@ import '../../../core/theme.dart';
 import '../../subscription/presentation/paywall_screen.dart';
 import '../../subscription/presentation/subscription_status_card.dart';
 import 'edit_profile_page.dart';
+import 'privacy_policy_page.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -77,6 +78,17 @@ class ProfilePage extends ConsumerWidget {
                 activeThumbColor: ElevaColors.gold,
                 onChanged: (_) {},
               ),
+            ),
+            _ProfileTile(
+              icon: Icons.shield_outlined,
+              title: 'Política de Privacidade',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const PrivacyPolicyPage(),
+                  ),
+                );
+              },
             ),
             _ProfileTile(
               icon: Icons.info_outline_rounded,
