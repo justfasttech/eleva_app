@@ -144,7 +144,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                               try {
                                 await Supabase.instance.client.auth
-                                    .resetPasswordForEmail(email);
+                                    .resetPasswordForEmail(
+                                  email,
+                                  redirectTo:
+                                      'https://justfasttech.github.io/eleva_app/reset-password.html',
+                                );
                                 if (sheetContext.mounted) {
                                   Navigator.pop(sheetContext);
                                 }

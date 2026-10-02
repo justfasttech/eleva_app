@@ -18,7 +18,9 @@ import '../../readings/presentation/readings_list_screen.dart';
 import '../../meditation/presentation/meditations_list_screen.dart';
 import '../../prayers/presentation/prayers_list_screen.dart';
 import '../../quiz/providers/quiz_provider.dart';
+import '../../quiz/presentation/quiz_play_screen.dart';
 import '../../quiz/presentation/quiz_results_screen.dart';
+import '../../diary/providers/diary_provider.dart';
 
 class ChallengesPage extends ConsumerWidget {
   const ChallengesPage({super.key});
@@ -233,6 +235,81 @@ class ChallengesPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
+            // --- Quizzes Disponíveis ---
+            _buildSectionHeader(context, 'Quizzes', Icons.quiz_rounded,
+              onSeeAll: () {
+                final diaryOk = ref.read(hasFilledDiaryTodayProvider);
+                if (!diaryOk) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Preencha seu diário antes de iniciar um quiz'),
+                      backgroundColor: ElevaColors.gold,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ThemeSelectionScreen(contentType: 'quiz'),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 150,
+              child: ref.watch(quizzesProvider).when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: ElevaColors.gold),
+                ),
+                error: (_, __) => const Center(
+                  child: Text('Erro ao carregar', style: TextStyle(color: ElevaColors.textMuted)),
+                ),
+                data: (quizzes) {
+                  final published = quizzes.where((q) => q.isPublished).toList();
+                  if (published.isEmpty) {
+                    return const Center(
+                      child: Text('Em breve!', style: TextStyle(color: ElevaColors.textMuted)),
+                    );
+                  }
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(left: 24, right: 60),
+                    clipBehavior: Clip.none,
+                    itemCount: published.length,
+                    itemBuilder: (context, i) {
+                      final quiz = published[i];
+                      return _ContentCard(
+                        title: quiz.title,
+                        subtitle: '${quiz.questions.length} perguntas',
+                        icon: Icons.quiz_rounded,
+                        onTap: () {
+                          final diaryOk = ref.read(hasFilledDiaryTodayProvider);
+                          if (!diaryOk) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Preencha seu diário antes de iniciar um quiz'),
+                                backgroundColor: ElevaColors.gold,
+                              ),
+                            );
+                            return;
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => QuizPlayScreen(quiz: quiz),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // --- Quizzes Realizados ---
             Builder(builder: (context) {
               final attemptsAsync = ref.watch(userQuizAttemptsProvider);
@@ -245,7 +322,7 @@ class ChallengesPage extends ConsumerWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader(context, 'Quizzes Realizados', Icons.quiz_rounded),
+                  _buildSectionHeader(context, 'Quizzes Realizados', Icons.emoji_events_rounded),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 150,

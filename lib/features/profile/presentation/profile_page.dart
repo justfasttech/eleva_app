@@ -264,10 +264,9 @@ class ProfilePage extends ConsumerWidget {
 
                   await supabase.rpc('delete_own_account');
 
-                  await supabase.auth.signOut();
+                  if (ctx.mounted) Navigator.of(ctx).pop();
 
                   if (context.mounted) {
-                    Navigator.of(ctx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Conta excluída com sucesso.'),
@@ -275,6 +274,8 @@ class ProfilePage extends ConsumerWidget {
                       ),
                     );
                   }
+
+                  await supabase.auth.signOut();
                 } on AuthException catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

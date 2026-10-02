@@ -398,7 +398,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(height: 8),
               TextFormField(
                 initialValue: _email,
-                readOnly: true,
+                enabled: false,
                 decoration: InputDecoration(
                   prefixIcon:
                       const Icon(Icons.email_outlined, color: ElevaColors.gold),

@@ -38,8 +38,8 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _text(
-                'O Eleva ("nós", "nosso" ou "aplicativo") é um aplicativo de fé e espiritualidade '
-                'desenvolvido por JustFast Technology. Esta Política de Privacidade descreve como '
+                'O Eleva é um aplicativo de fé e espiritualidade '
+                'desenvolvido por Ino Technology. Esta Política de Privacidade descreve como '
                 'coletamos, usamos e protegemos suas informações pessoais quando você utiliza nosso '
                 'aplicativo, disponível para Android, iOS e Web.',
               ),
@@ -175,7 +175,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 child: const Column(
                   children: [
                     Text(
-                      'contato@justfast.tech',
+                      'inotechnologydeveloper@gmail.com',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -184,7 +184,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'JustFast Technology',
+                      'Ino Technology',
                       style: TextStyle(
                         fontSize: 13,
                         color: ElevaColors.textMuted,
@@ -196,7 +196,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               const SizedBox(height: 32),
               const Center(
                 child: Text(
-                  '© 2026 JustFast Technology. Todos os direitos reservados.',
+                  '© 2026 Ino Technology. Todos os direitos reservados.',
                   style: TextStyle(fontSize: 12, color: ElevaColors.textMuted),
                   textAlign: TextAlign.center,
                 ),

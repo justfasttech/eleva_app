@@ -18,6 +18,8 @@ class PaywallScreen extends ConsumerStatefulWidget {
 
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _loading = false;
+  bool _loadingOfferings = false;
+  bool _offeringsError = false;
   Package? _monthlyPkg;
   Package? _annualPkg;
   int _selectedPlan = 1; // 0 = mensal, 1 = anual (pré-selecionado)
@@ -30,18 +32,30 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _loadOfferings() async {
     if (kIsWeb) return;
-    final offerings = await RevenueCatService.getOfferings();
-    if (offerings?.current != null && mounted) {
-      final packages = offerings!.current!.availablePackages;
-      setState(() {
-        _monthlyPkg = packages
-            .where((p) => p.packageType == PackageType.monthly)
-            .firstOrNull;
-        _annualPkg = packages
-            .where((p) => p.packageType == PackageType.annual)
-            .firstOrNull;
-        _monthlyPkg ??= packages.isNotEmpty ? packages.first : null;
-      });
+    setState(() {
+      _loadingOfferings = true;
+      _offeringsError = false;
+    });
+    try {
+      final offerings = await RevenueCatService.getOfferings();
+      if (offerings?.current != null && mounted) {
+        final packages = offerings!.current!.availablePackages;
+        setState(() {
+          _monthlyPkg = packages
+              .where((p) => p.packageType == PackageType.monthly)
+              .firstOrNull;
+          _annualPkg = packages
+              .where((p) => p.packageType == PackageType.annual)
+              .firstOrNull;
+          _monthlyPkg ??= packages.isNotEmpty ? packages.first : null;
+        });
+      } else if (mounted) {
+        setState(() => _offeringsError = true);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _offeringsError = true);
+    } finally {
+      if (mounted) setState(() => _loadingOfferings = false);
     }
   }
 
@@ -59,9 +73,19 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _purchase() async {
+    if (kIsWeb) {
+      _purchaseWeb();
+      return;
+    }
     final pkg = _selectedPackage;
     if (pkg == null) {
-      _purchaseWeb();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Carregando planos... Tente novamente em instantes.'),
+          backgroundColor: ElevaColors.gold,
+        ),
+      );
+      _loadOfferings();
       return;
     }
     setState(() => _loading = true);
@@ -69,6 +93,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       final success = await RevenueCatService.purchasePackage(pkg);
       if (success) {
         await _syncSubscriptionToSupabase();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Assinatura ativada com sucesso!'),
+              backgroundColor: ElevaColors.gold,
+            ),
+          );
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -100,9 +133,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     if (email != null) params['prefilled_email'] = email;
 
     final uri = Uri.parse(baseUrl).replace(queryParameters: params);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _restore() async {
@@ -172,7 +203,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Assinatura ainda nao encontrada. Aguarde alguns instantes e tente novamente.',
+              'Assinatura ainda não encontrada. Aguarde alguns instantes e tente novamente.',
             ),
           ),
         );
@@ -204,7 +235,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               Image.asset('assets/images/logo.png', height: 72),
               const SizedBox(height: 24),
               const Text(
-                'Eleve sua fe sem limites',
+                'Eleve sua fé sem limites',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -215,8 +246,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               const SizedBox(height: 12),
               Text(
                 trialDays > 0
-                    ? 'Seu periodo de teste expira em $trialDays dias.'
-                    : 'Seu periodo de teste expirou.',
+                    ? 'Seu período de teste expira em $trialDays dias.'
+                    : 'Seu período de teste expirou.',
                 style: const TextStyle(
                   fontSize: 15,
                   color: ElevaColors.textMuted,
@@ -226,38 +257,63 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               const SizedBox(height: 36),
               _BenefitRow(
                 icon: Icons.auto_awesome_rounded,
-                text: 'Conteudo ilimitado todos os dias',
+                text: 'Conteúdo ilimitado todos os dias',
               ),
               _BenefitRow(
                 icon: Icons.menu_book_rounded,
-                text: 'Leituras, meditacoes e oracoes sem restricoes',
+                text: 'Leituras, meditações e orações sem restrições',
               ),
               _BenefitRow(
                 icon: Icons.psychology_rounded,
-                text: 'Acesso a todos os desafios de fe',
+                text: 'Acesso a todos os desafios de fé',
               ),
               _BenefitRow(
                 icon: Icons.favorite_rounded,
                 text: 'Apoie o desenvolvimento do Eleva',
               ),
               const SizedBox(height: 32),
-              _buildPlanCards(),
-              const SizedBox(height: 28),
-              if (_loading)
-                const CircularProgressIndicator(color: ElevaColors.gold)
+              if (_loadingOfferings)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: CircularProgressIndicator(color: ElevaColors.gold),
+                )
+              else if (_offeringsError && !kIsWeb)
+                Column(
+                  children: [
+                    const Text(
+                      'Não foi possível carregar os planos.',
+                      style: TextStyle(fontSize: 14, color: ElevaColors.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _loadOfferings,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Tentar novamente'),
+                    ),
+                  ],
+                )
               else ...[
-                ElevatedButton(
-                  onPressed: _purchase,
-                  child: Text(_buildCtaText()),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _restore,
-                  child: Text(
-                    kIsWeb ? 'Ja assinei' : 'Restaurar compras',
-                    style: const TextStyle(color: ElevaColors.gold),
+                _buildPlanCards(),
+                const SizedBox(height: 28),
+                if (_loading)
+                  const CircularProgressIndicator(color: ElevaColors.gold)
+                else ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _purchase,
+                      child: Text(_buildCtaText()),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _restore,
+                    child: Text(
+                      kIsWeb ? 'Já assinei' : 'Restaurar compras',
+                      style: const TextStyle(color: ElevaColors.gold),
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 24),
             ],
@@ -270,7 +326,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   String _buildCtaText() {
     if (kIsWeb) {
       return _selectedPlan == 0
-          ? 'Assinar mensal — R\$19,90/mes'
+          ? 'Assinar mensal — R\$19,90/mês'
           : 'Assinar anual — R\$158,90/ano';
     }
     final pkg = _selectedPackage;
@@ -297,30 +353,33 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       savings = 33;
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: _PlanCard(
-            label: 'Mensal',
-            price: monthlyPrice,
-            period: '/mes',
-            selected: _selectedPlan == 0,
-            onTap: () => setState(() => _selectedPlan = 0),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _PlanCard(
+              label: 'Mensal',
+              price: monthlyPrice,
+              period: '/mês',
+              selected: _selectedPlan == 0,
+              onTap: () => setState(() => _selectedPlan = 0),
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _PlanCard(
-            label: 'Anual',
-            price: annualMonthly,
-            period: '/mes',
-            subtitle: '$annualPrice/ano',
-            savingsPercent: savings?.round(),
-            selected: _selectedPlan == 1,
-            onTap: () => setState(() => _selectedPlan = 1),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _PlanCard(
+              label: 'Anual',
+              price: annualMonthly,
+              period: '/mês',
+              subtitle: '$annualPrice/ano',
+              savingsPercent: savings?.round(),
+              selected: _selectedPlan == 1,
+              onTap: () => setState(() => _selectedPlan = 1),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -362,6 +421,7 @@ class _PlanCard extends StatelessWidget {
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

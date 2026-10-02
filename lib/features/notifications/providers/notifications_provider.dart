@@ -25,6 +25,8 @@ final notificationsProvider =
 
   final readIds = <String>{};
 
+  final userCreatedAt = DateTime.parse(user.createdAt).toUtc();
+
   await for (final rows in client
       .from('notifications')
       .stream(primaryKey: ['id'])
@@ -39,6 +41,10 @@ final notificationsProvider =
       ..addAll(readRows.map((r) => r['notification_id'] as String));
 
     yield rows
+        .where((row) {
+          final createdAt = DateTime.parse(row['created_at'] as String);
+          return !createdAt.isBefore(userCreatedAt);
+        })
         .map((row) {
           final id = row['id'] as String;
           return AppNotification.fromMap(row, isRead: readIds.contains(id));

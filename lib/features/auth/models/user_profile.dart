@@ -40,7 +40,10 @@ class UserProfile {
 
   int get trialDaysRemaining {
     final trialEnd = createdAt.add(const Duration(days: 30));
-    final remaining = trialEnd.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final endDate = DateTime(trialEnd.year, trialEnd.month, trialEnd.day, 23, 59, 59);
+    final today = DateTime(now.year, now.month, now.day);
+    final remaining = endDate.difference(today).inDays;
     return remaining > 0 ? remaining : 0;
   }
 

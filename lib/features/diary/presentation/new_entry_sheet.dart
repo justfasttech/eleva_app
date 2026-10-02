@@ -98,10 +98,56 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
           ),
         );
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ThemeSelectionScreen(contentType: 'quiz'),
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: ElevaColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.quiz_rounded, color: ElevaColors.gold, size: 24),
+                  SizedBox(width: 10),
+                  Text(
+                    'Hora do desafio!',
+                    style: TextStyle(
+                      color: ElevaColors.textDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Que tal testar seus conhecimentos com um quiz?',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: ElevaColors.textMuted,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Agora não',
+                    style: TextStyle(color: ElevaColors.textMuted),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const ThemeSelectionScreen(contentType: 'quiz'),
+                      ),
+                    );
+                  },
+                  child: const Text('Iniciar quiz'),
+                ),
+              ],
             ),
           );
         }
