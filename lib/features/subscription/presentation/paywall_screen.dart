@@ -226,6 +226,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final trialDays = ref.watch(trialDaysRemainingProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded, color: ElevaColors.textDark),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
@@ -315,6 +325,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   ),
                 ],
               ],
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () async {
+                  await Supabase.instance.client.auth.signOut();
+                },
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text('Sair da conta'),
+                style: TextButton.styleFrom(
+                  foregroundColor: ElevaColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 24),
             ],
           ),

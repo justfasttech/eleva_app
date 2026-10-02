@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eleva — Excluir Conta</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #FAF6EE;
+      color: #3D3D3D;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      line-height: 1.7;
+      padding: 0 20px;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      padding: 48px 0 32px;
+      border-bottom: 1px solid #E8E4DC;
+      margin-bottom: 40px;
+    }
+    header .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #E8B84B, #F2D68A);
+      border-radius: 14px;
+      margin-bottom: 20px;
+    }
+    header .logo-mark svg { width: 30px; height: 30px; fill: white; }
+    header h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 26px;
+      font-weight: 400;
+      margin-bottom: 8px;
+    }
+    header p { color: #8A8A8A; font-size: 14px; }
+    h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 20px;
+      font-weight: 400;
+      margin: 32px 0 16px;
+    }
+    p, li { font-size: 15px; line-height: 1.7; }
+    ul { padding-left: 20px; margin: 8px 0 16px; }
+    li { margin-bottom: 6px; }
+    .steps {
+      background: #fff;
+      border: 1px solid #E8E4DC;
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .step:last-child { margin-bottom: 0; }
+    .step-number {
+      min-width: 32px; height: 32px;
+      background: linear-gradient(135deg, #E8B84B, #F2D68A);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .step-text { padding-top: 4px; }
+    .highlight {
+      background: rgba(232, 184, 75, 0.08);
+      border-left: 3px solid #E8B84B;
+      padding: 16px 20px;
+      border-radius: 0 10px 10px 0;
+      margin: 24px 0;
+    }
+    .highlight p { margin: 0; font-size: 14px; }
+    .contact {
+      background: #fff;
+      border: 1px solid #E8E4DC;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px 0;
+      text-align: center;
+    }
+    .contact .email {
+      font-size: 16px;
+      font-weight: 600;
+      color: #E8B84B;
+      text-decoration: none;
+    }
+    .contact .label { font-size: 13px; color: #8A8A8A; margin-bottom: 6px; }
+    footer {
+      border-top: 1px solid #E8E4DC;
+      padding: 32px 0 48px;
+      margin-top: 48px;
+      text-align: center;
+    }
+    footer .brand {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 15px;
+      color: #E8B84B;
+      margin-bottom: 4px;
+    }
+    footer p { font-size: 13px; color: #8A8A8A; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1A1816; color: #E8E4DC; }
+      header { border-color: #3A3632; }
+      footer { border-color: #3A3632; }
+      .steps { background: #242220; border-color: #3A3632; }
+      .highlight { background: rgba(232, 184, 75, 0.1); }
+      .contact { background: #242220; border-color: #3A3632; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+  </div>
+  <h1>Exclusão de Conta</h1>
+  <p>Saiba como excluir sua conta e seus dados do Eleva</p>
+</header>
+
+<p>Você pode excluir sua conta diretamente pelo aplicativo Eleva. Ao excluir sua conta, todos os seus dados pessoais serão removidos permanentemente em até <strong>30 dias</strong>.</p>
+
+<h2>Dados que serão excluídos</h2>
+<ul>
+  <li>Dados de cadastro (nome, e-mail, senha)</li>
+  <li>Perfil espiritual e preferências</li>
+  <li>Entradas do diário pessoal</li>
+  <li>Histórico de desafios e quizzes</li>
+  <li>Pontos de fé e progresso</li>
+  <li>Dados de assinatura</li>
+</ul>
+
+<h2>Como excluir pelo aplicativo</h2>
+<div class="steps">
+  <div class="step">
+    <div class="step-number">1</div>
+    <div class="step-text">Abra o aplicativo Eleva e vá para a aba <strong>Perfil</strong></div>
+  </div>
+  <div class="step">
+    <div class="step-number">2</div>
+    <div class="step-text">Toque em <strong>Excluir conta</strong></div>
+  </div>
+  <div class="step">
+    <div class="step-number">3</div>
+    <div class="step-text">Confirme sua senha para validar a exclusão</div>
+  </div>
+  <div class="step">
+    <div class="step-number">4</div>
+    <div class="step-text">Sua conta e todos os dados serão removidos permanentemente</div>
+  </div>
+</div>
+
+<div class="highlight">
+  <p><strong>Importante:</strong> A exclusão da conta é irreversível. Se você possui uma assinatura ativa, cancele-a antes pela loja (Google Play ou App Store) para evitar cobranças futuras.</p>
+</div>
+
+<h2>Solicitar exclusão por e-mail</h2>
+<p>Se você não consegue acessar o aplicativo, pode solicitar a exclusão da sua conta entrando em contato conosco pelo e-mail abaixo. Inclua o endereço de e-mail cadastrado na sua conta.</p>
+
+<div class="contact">
+  <p class="label">E-mail para solicitação</p>
+  <a class="email" href="mailto:inotechnologydeveloper@gmail.com?subject=Solicita%C3%A7%C3%A3o%20de%20exclus%C3%A3o%20de%20conta%20-%20Eleva">inotechnologydeveloper@gmail.com</a>
+</div>
+
+<footer>
+  <p class="brand">Eleva</p>
+  <p>&copy; 2026 Ino Technology. Todos os direitos reservados.</p>
+</footer>
+
+</body>
+</html>

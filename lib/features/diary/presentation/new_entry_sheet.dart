@@ -60,10 +60,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       return;
     }
 
-    if (_charCount > 50) {
+    if (_charCount > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Limite de 50 caracteres excedido ($_charCount/50)'),
+          content: Text('Limite de 100 caracteres excedido ($_charCount/100)'),
           backgroundColor: Colors.red,
         ),
       );
@@ -127,13 +127,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'Agora não',
-                    style: TextStyle(color: ElevaColors.textMuted),
-                  ),
-                ),
+    
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
@@ -147,6 +141,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                   },
                   child: const Text('Iniciar quiz'),
                 ),
+                SizedBox(height:10),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Agora não',
+                    style: TextStyle(color: ElevaColors.textMuted),
+                  ),
+                )
               ],
             ),
           );
@@ -254,7 +256,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                     controller: _contentController,
                     maxLines: null,
                     minLines: 3,
-                    maxLength: 50,
+                    maxLength: 100,
                     decoration: const InputDecoration(
                       hintText: 'Escreva sua reflexão...',
                       alignLabelWithHint: true,
@@ -266,11 +268,11 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      '$_charCount/50 caracteres',
+                      '$_charCount/100 caracteres',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: _charCount <= 50 ? Colors.green : Colors.red.shade400,
+                        color: _charCount <= 100 ? Colors.green : Colors.red.shade400,
                       ),
                     ),
                   ),

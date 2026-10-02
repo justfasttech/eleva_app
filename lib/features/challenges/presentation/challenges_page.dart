@@ -21,6 +21,8 @@ import '../../quiz/providers/quiz_provider.dart';
 import '../../quiz/presentation/quiz_play_screen.dart';
 import '../../quiz/presentation/quiz_results_screen.dart';
 import '../../diary/providers/diary_provider.dart';
+import '../../diary/presentation/new_entry_sheet.dart';
+import '../../quiz/presentation/quizzes_list_screen.dart';
 
 class ChallengesPage extends ConsumerWidget {
   const ChallengesPage({super.key});
@@ -31,6 +33,7 @@ class ChallengesPage extends ConsumerWidget {
     final canUnlockReading = ref.watch(canUnlockTodayProvider('reading'));
     final canUnlockMeditation = ref.watch(canUnlockTodayProvider('meditation'));
     final canUnlockPrayer = ref.watch(canUnlockTodayProvider('prayer'));
+    final canUnlockQuiz = ref.watch(canUnlockTodayProvider('quiz'));
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -240,12 +243,7 @@ class ChallengesPage extends ConsumerWidget {
               onSeeAll: () {
                 final diaryOk = ref.read(hasFilledDiaryTodayProvider);
                 if (!diaryOk) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Preencha seu diário antes de iniciar um quiz'),
-                      backgroundColor: ElevaColors.gold,
-                    ),
-                  );
+                  _showDiaryRequiredModal(context);
                   return;
                 }
                 Navigator.push(
@@ -268,7 +266,10 @@ class ChallengesPage extends ConsumerWidget {
                 ),
                 data: (quizzes) {
                   final published = quizzes.where((q) => q.isPublished).toList();
-                  if (published.isEmpty) {
+                  final unlocked = published.where((q) => unlockedIds.contains(q.id)).take(6).toList();
+                  final locked = published.where((q) => !unlockedIds.contains(q.id)).take(3).toList();
+                  final allItems = [...unlocked, ...locked];
+                  if (allItems.isEmpty) {
                     return const Center(
                       child: Text('Em breve!', style: TextStyle(color: ElevaColors.textMuted)),
                     );
@@ -277,31 +278,25 @@ class ChallengesPage extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.only(left: 24, right: 60),
                     clipBehavior: Clip.none,
-                    itemCount: published.length,
+                    itemCount: allItems.length,
                     itemBuilder: (context, i) {
-                      final quiz = published[i];
+                      final quiz = allItems[i];
+                      if (!unlockedIds.contains(quiz.id)) {
+                        return _LockedContentCard(
+                          title: quiz.title,
+                          onTap: () => _handleLockedQuizTap(context, ref, canUnlockQuiz),
+                        );
+                      }
                       return _ContentCard(
                         title: quiz.title,
                         subtitle: '${quiz.questions.length} perguntas',
                         icon: Icons.quiz_rounded,
-                        onTap: () {
-                          final diaryOk = ref.read(hasFilledDiaryTodayProvider);
-                          if (!diaryOk) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Preencha seu diário antes de iniciar um quiz'),
-                                backgroundColor: ElevaColors.gold,
-                              ),
-                            );
-                            return;
-                          }
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => QuizPlayScreen(quiz: quiz),
-                            ),
-                          );
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => QuizPlayScreen(quiz: quiz),
+                          ),
+                        ),
                       );
                     },
                   );
@@ -385,6 +380,64 @@ class ChallengesPage extends ConsumerWidget {
     _showThemeSelectionDialog(context, ref, 'prayer');
   }
 
+  void _handleLockedQuizTap(
+    BuildContext context, WidgetRef ref,
+    AsyncValue<bool> canUnlockAsync,
+  ) {
+    final diaryOk = ref.read(hasFilledDiaryTodayProvider);
+    if (!diaryOk) {
+      _showDiaryRequiredModal(context);
+      return;
+    }
+    _showThemeSelectionDialog(context, ref, 'quiz');
+  }
+
+  void _showDiaryRequiredModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ElevaColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.book_rounded, color: ElevaColors.gold, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Diário pendente',
+              style: TextStyle(
+                color: ElevaColors.textDark,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Preencha seu diário de hoje antes de desbloquear um quiz.',
+          style: TextStyle(fontSize: 14, color: ElevaColors.textMuted),
+        ),
+        actions: [
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              showNewEntrySheet(context);
+            },
+            child: const Text('Ir para o diário'),
+          ),
+          SizedBox(height:10),
+                    TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Agora não',
+              style: TextStyle(color: ElevaColors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showThemeSelectionDialog(
     BuildContext context, WidgetRef ref, String contentType,
   ) {
@@ -402,6 +455,10 @@ class ChallengesPage extends ConsumerWidget {
       case 'prayer':
         title = 'Escolha um tema - Orações';
         icon = Icons.volunteer_activism_rounded;
+        break;
+      case 'quiz':
+        title = 'Escolha um tema - Quizzes';
+        icon = Icons.quiz_rounded;
         break;
       default:
         return;
@@ -485,6 +542,9 @@ class ChallengesPage extends ConsumerWidget {
         break;
       case 'prayer':
         screen = PrayersListScreen(themeId: themeId, themeName: themeName);
+        break;
+      case 'quiz':
+        screen = QuizzesListScreen(themeId: themeId, themeName: themeName);
         break;
       default:
         return;
