@@ -123,41 +123,29 @@ class _ReadingsTabState extends ConsumerState<_ReadingsTab> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  key: ValueKey(_selectedThemeId),
-                  initialValue: _selectedThemeId,
-                  decoration: InputDecoration(
-                    labelText: 'Filtrar por tema',
-                    labelStyle: TextStyle(color: cs.onSurfaceVariant),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    isDense: true,
-                  ),
-                  items: themes
-                      .map((t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name,
-                                style: const TextStyle(fontSize: 13)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedThemeId = v),
-                ),
-              ),
-              if (_selectedThemeId != null) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.clear_rounded),
-                  onPressed: () => setState(() => _selectedThemeId = null),
-                  tooltip: 'Limpar filtro',
-                ),
-              ],
-            ],
+          child: DropdownButtonFormField<String>(
+            value: _selectedThemeId,
+            dropdownColor: cs.surface,
+            style: TextStyle(color: cs.onSurface, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'Filtrar por tema',
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              suffixIcon: _selectedThemeId != null
+                  ? IconButton(
+                      icon: Icon(Icons.close_rounded,
+                          size: 18, color: cs.onSurfaceVariant),
+                      onPressed: () =>
+                          setState(() => _selectedThemeId = null),
+                    )
+                  : null,
+            ),
+            items: themes
+                .map((t) =>
+                    DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedThemeId = v),
           ),
         ),
         const SizedBox(height: 8),
@@ -219,14 +207,17 @@ class _ReadingsTabState extends ConsumerState<_ReadingsTab> {
                       const SizedBox(height: 8),
                       ...sectionReadings.map((r) {
                         final tName = themes.where((t) => t.id == r.themeId);
-                        final themeLabel = tName.isNotEmpty ? tName.first.name : '---';
+                        final themeLabel = tName.isNotEmpty ? tName.first.name : 'Sem tema';
                         return Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: _ContentCard(
                               icon: Icons.menu_book_rounded,
                               title: r.title,
-                              subtitle: '$themeLabel · ${r.reference ?? r.categoryLabel}',
-                              trailing: _CategoryBadge(label: r.categoryLabel),
+                              subtitle: r.reference ?? r.categoryLabel,
+                              tags: [
+                                _CategoryBadge(label: themeLabel),
+                                _CategoryBadge(label: r.categoryLabel),
+                              ],
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -390,41 +381,29 @@ class _MeditationsTabState extends ConsumerState<_MeditationsTab> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  key: ValueKey(_selectedThemeId),
-                  initialValue: _selectedThemeId,
-                  decoration: InputDecoration(
-                    labelText: 'Filtrar por tema',
-                    labelStyle: TextStyle(color: cs.onSurfaceVariant),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    isDense: true,
-                  ),
-                  items: themes
-                      .map((t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name,
-                                style: const TextStyle(fontSize: 13)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedThemeId = v),
-                ),
-              ),
-              if (_selectedThemeId != null) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.clear_rounded),
-                  onPressed: () => setState(() => _selectedThemeId = null),
-                  tooltip: 'Limpar filtro',
-                ),
-              ],
-            ],
+          child: DropdownButtonFormField<String>(
+            value: _selectedThemeId,
+            dropdownColor: cs.surface,
+            style: TextStyle(color: cs.onSurface, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'Filtrar por tema',
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              suffixIcon: _selectedThemeId != null
+                  ? IconButton(
+                      icon: Icon(Icons.close_rounded,
+                          size: 18, color: cs.onSurfaceVariant),
+                      onPressed: () =>
+                          setState(() => _selectedThemeId = null),
+                    )
+                  : null,
+            ),
+            items: themes
+                .map((t) =>
+                    DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedThemeId = v),
           ),
         ),
         const SizedBox(height: 8),
@@ -462,14 +441,13 @@ class _MeditationsTabState extends ConsumerState<_MeditationsTab> {
                         ? Icons.self_improvement_rounded
                         : Icons.waves_rounded,
                     title: m.title,
-                    subtitle: '$themeLabel · ${m.durationLabel} · ${m.typeLabel}',
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _CategoryBadge(label: m.typeLabel),
-                        if (m.hasAudio) ...[
-                          const SizedBox(width: 6),
-                          GestureDetector(
+                    subtitle: '${m.durationLabel} · ${m.typeLabel}',
+                    tags: [
+                      _CategoryBadge(label: themeLabel),
+                      _CategoryBadge(label: m.typeLabel),
+                    ],
+                    trailing: m.hasAudio
+                        ? GestureDetector(
                             onTap: () => _togglePreview(m),
                             child: Container(
                               width: 32,
@@ -489,10 +467,8 @@ class _MeditationsTabState extends ConsumerState<_MeditationsTab> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
+                          )
+                        : null,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1444,6 +1420,7 @@ class _ContentCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget? trailing;
+  final List<Widget>? tags;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -1453,6 +1430,7 @@ class _ContentCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.trailing,
+    this.tags,
     this.onTap,
     this.onEdit,
     this.onDelete,
@@ -1495,6 +1473,14 @@ class _ContentCard extends StatelessWidget {
                     Text(subtitle,
                         style: TextStyle(
                             fontSize: 12, color: cs.onSurfaceVariant)),
+                    if (tags != null && tags!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: tags!,
+                      ),
+                    ],
                   ],
                 ),
               ),

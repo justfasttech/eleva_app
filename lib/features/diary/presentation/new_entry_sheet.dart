@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme.dart';
-import '../../content_themes/presentation/theme_selection_screen.dart';
 import '../models/diary_entry.dart';
-import '../providers/scoring_words_provider.dart';
+import '../models/scoring_word.dart';
+import '../utils/daily_faith_limiter.dart';
 import '../utils/faith_penalty.dart';
 
 void showNewEntrySheet(BuildContext context) {
@@ -27,22 +27,25 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   final _contentController = TextEditingController();
   String _selectedMood = 'neutral';
   bool _isSaving = false;
-  int _charCount = 0;
+  int _wordCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _contentController.addListener(_updateCharCount);
+    _contentController.addListener(_updateWordCount);
   }
 
-  void _updateCharCount() {
-    final count = _contentController.text.length;
-    if (count != _charCount) setState(() => _charCount = count);
+  void _updateWordCount() {
+    final text = _contentController.text.trim();
+    final count = text.isEmpty
+        ? 0
+        : text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+    if (count != _wordCount) setState(() => _wordCount = count);
   }
 
   @override
   void dispose() {
-    _contentController.removeListener(_updateCharCount);
+    _contentController.removeListener(_updateWordCount);
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
@@ -60,10 +63,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       return;
     }
 
-    if (_charCount > 100) {
+    if (_wordCount > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Limite de 100 caracteres excedido ($_charCount/100)'),
+          content: Text('Limite de 100 palavras excedido ($_wordCount/100)'),
           backgroundColor: Colors.red,
         ),
       );
@@ -80,79 +83,24 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         'mood': _selectedMood,
       });
 
-      final words = ref.read(scoringWordsProvider).value ?? [];
+      final wordsData = await Supabase.instance.client
+          .from('scoring_words')
+          .select();
+      final words = wordsData.map(ScoringWord.fromMap).toList();
       final score = calculateContentScore(content, words);
       if (score != 0) {
-        await Supabase.instance.client.rpc('apply_faith_penalty', params: {
-          'p_user_id': userId,
-          'p_amount': score,
-        });
+        await applyFaithWithDailyLimit(userId, score);
       }
 
       if (mounted) {
-        Navigator.pop(context);
+        final navigator = Navigator.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Reflexão salva!'),
             backgroundColor: ElevaColors.gold,
           ),
         );
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: ElevaColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.quiz_rounded, color: ElevaColors.gold, size: 24),
-                  SizedBox(width: 10),
-                  Text(
-                    'Hora do desafio!',
-                    style: TextStyle(
-                      color: ElevaColors.textDark,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              content: const Text(
-                'Que tal testar seus conhecimentos com um quiz?',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: ElevaColors.textMuted,
-                ),
-              ),
-              actions: [
-    
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const ThemeSelectionScreen(contentType: 'quiz'),
-                      ),
-                    );
-                  },
-                  child: const Text('Iniciar quiz'),
-                ),
-                SizedBox(height:10),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'Agora não',
-                    style: TextStyle(color: ElevaColors.textMuted),
-                  ),
-                )
-              ],
-            ),
-          );
-        }
+        navigator.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -256,11 +204,9 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                     controller: _contentController,
                     maxLines: null,
                     minLines: 3,
-                    maxLength: 100,
                     decoration: const InputDecoration(
                       hintText: 'Escreva sua reflexão...',
                       alignLabelWithHint: true,
-                      counterText: '',
                     ),
                     textCapitalization: TextCapitalization.sentences,
                   ),
@@ -268,11 +214,11 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      '$_charCount/100 caracteres',
+                      '$_wordCount/100 palavras',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: _charCount <= 100 ? Colors.green : Colors.red.shade400,
+                        color: _wordCount <= 100 ? Colors.green : Colors.red.shade400,
                       ),
                     ),
                   ),

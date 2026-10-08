@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme.dart';
 import '../models/quiz.dart';
 import '../providers/quiz_provider.dart';
+import '../../unlocks/providers/unlocks_provider.dart';
 import 'quiz_results_screen.dart';
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
@@ -93,6 +94,8 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         });
       }
       ref.invalidate(userQuizAttemptsProvider);
+      await markContentCompleted(widget.quiz.id);
+      ref.invalidate(userUnlocksProvider);
     } catch (_) {}
   }
 
@@ -175,32 +178,40 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          Text(
-            question.questionText,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: ElevaColors.textDark,
-              height: 1.4,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    question.questionText,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: ElevaColors.textDark,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ...List.generate(4, (i) {
+                    final key = _optionKeys[i];
+                    final text = question.optionText(key);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _OptionButton(
+                        label: key.toUpperCase(),
+                        text: text,
+                        isSelected: _selectedOption == key,
+                        isCorrect: key == question.correctOption,
+                        showResult: _answered,
+                        onTap: () => _selectOption(key),
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 24),
-          ...List.generate(4, (i) {
-            final key = _optionKeys[i];
-            final text = question.optionText(key);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _OptionButton(
-                label: key.toUpperCase(),
-                text: text,
-                isSelected: _selectedOption == key,
-                isCorrect: key == question.correctOption,
-                showResult: _answered,
-                onTap: () => _selectOption(key),
-              ),
-            );
-          }),
-          const Spacer(),
           if (_selectedOption != null && !_answered)
             SizedBox(
               width: double.infinity,

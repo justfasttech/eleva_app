@@ -141,16 +141,16 @@ class _AdminNotificationsPageState
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface)),
                   const SizedBox(height: 10),
-                  Row(
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
                       ('todos', 'Todos', Icons.groups_rounded),
                       ('free', 'Free', Icons.person_rounded),
                       ('premium', 'Premium', Icons.star_rounded),
                     ].map((option) {
                       final isSelected = _audience == option.$1;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: GestureDetector(
+                      return GestureDetector(
                           onTap: () =>
                               setState(() => _audience = option.$1),
                           child: AnimatedContainer(
@@ -189,7 +189,6 @@ class _AdminNotificationsPageState
                               ],
                             ),
                           ),
-                        ),
                       );
                     }).toList(),
                   ),

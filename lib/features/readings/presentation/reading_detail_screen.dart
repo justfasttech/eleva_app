@@ -4,6 +4,9 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../core/theme.dart';
 import '../models/spiritual_reading.dart';
+import '../../quiz/providers/quiz_provider.dart';
+import '../../quiz/presentation/quiz_play_screen.dart';
+import '../../unlocks/providers/unlocks_provider.dart';
 
 class ReadingDetailScreen extends ConsumerStatefulWidget {
   final SpiritualReading reading;
@@ -24,6 +27,8 @@ class _ReadingDetailScreenState extends ConsumerState<ReadingDetailScreen> {
   @override
   void initState() {
     super.initState();
+    final completedIds = ref.read(completedContentIdsProvider);
+    _completed = completedIds.contains(widget.reading.id);
     if (widget.reading.hasAudio) {
       _initAudio();
     }
@@ -51,16 +56,62 @@ class _ReadingDetailScreenState extends ConsumerState<ReadingDetailScreen> {
     super.dispose();
   }
 
-  void _markCompleted() {
+  Future<void> _markCompleted() async {
     if (_completed) return;
-    setState(() => _completed = true);
+    final success = await markContentCompleted(widget.reading.id);
+    if (success && mounted) {
+      ref.invalidate(userUnlocksProvider);
+      setState(() => _completed = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Leitura concluída!'),
-        backgroundColor: ElevaColors.gold,
-      ),
-    );
+      final linkedQuiz = ref.read(quizForReadingProvider(widget.reading.id));
+      if (linkedQuiz != null && mounted) {
+        final startQuiz = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: ElevaColors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.quiz_rounded, color: ElevaColors.gold, size: 24),
+                SizedBox(width: 10),
+                Text(
+                  'Quiz disponível!',
+                  style: TextStyle(
+                    color: ElevaColors.textDark,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Você concluiu a leitura! Deseja iniciar o quiz "${linkedQuiz.title}"?',
+              style: const TextStyle(fontSize: 14, color: ElevaColors.textMuted),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Iniciar quiz'),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Agora não', style: TextStyle(color: ElevaColors.textMuted)),
+              ),
+            ],
+          ),
+        );
+        if (startQuiz == true && mounted) {
+          final fullQuiz = await ref.read(quizWithQuestionsProvider(linkedQuiz.id).future);
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => QuizPlayScreen(quiz: fullQuiz)),
+            );
+          }
+        }
+      }
+    }
   }
 
   String _formatDuration(Duration d) {

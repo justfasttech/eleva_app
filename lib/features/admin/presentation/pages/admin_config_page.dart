@@ -247,6 +247,8 @@ class _ScoringWordsTab extends ConsumerStatefulWidget {
 class _ScoringWordsTabState extends ConsumerState<_ScoringWordsTab> {
   final _diaryPenaltyCtrl = TextEditingController();
   final _inactivityPenaltyCtrl = TextEditingController();
+  final _dailyFaithLimitCtrl = TextEditingController();
+  final _dailyFaithLossLimitCtrl = TextEditingController();
   bool _configLoaded = false;
   bool _penaltiesExpanded = false;
 
@@ -254,6 +256,8 @@ class _ScoringWordsTabState extends ConsumerState<_ScoringWordsTab> {
   void dispose() {
     _diaryPenaltyCtrl.dispose();
     _inactivityPenaltyCtrl.dispose();
+    _dailyFaithLimitCtrl.dispose();
+    _dailyFaithLossLimitCtrl.dispose();
     super.dispose();
   }
 
@@ -263,13 +267,17 @@ class _ScoringWordsTabState extends ConsumerState<_ScoringWordsTab> {
       final rows = await Supabase.instance.client
           .from('app_config')
           .select('key, value')
-          .inFilter('key', ['diary_penalty', 'inactivity_penalty']);
+          .inFilter('key', ['diary_penalty', 'inactivity_penalty', 'daily_faith_limit', 'daily_faith_loss_limit']);
       for (final row in rows) {
         final key = row['key'] as String;
         final value = row['value'] as String;
         if (key == 'diary_penalty') _diaryPenaltyCtrl.text = value;
         if (key == 'inactivity_penalty') _inactivityPenaltyCtrl.text = value;
+        if (key == 'daily_faith_limit') _dailyFaithLimitCtrl.text = value;
+        if (key == 'daily_faith_loss_limit') _dailyFaithLossLimitCtrl.text = value;
       }
+      if (_dailyFaithLimitCtrl.text.isEmpty) _dailyFaithLimitCtrl.text = '10';
+      if (_dailyFaithLossLimitCtrl.text.isEmpty) _dailyFaithLossLimitCtrl.text = '10';
     } catch (_) {}
     _configLoaded = true;
   }
@@ -375,6 +383,66 @@ class _ScoringWordsTabState extends ConsumerState<_ScoringWordsTab> {
                         onPressed: () => _saveConfigValue(
                             'inactivity_penalty',
                             _inactivityPenaltyCtrl.text),
+                        icon: Icon(Icons.save_rounded,
+                            size: 20, color: cs.primary),
+                        tooltip: 'Salvar',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _dailyFaithLimitCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Limite diário de ganho',
+                            helperText: 'Máx. pontos ganhos por dia',
+                            helperStyle: TextStyle(
+                                color: cs.onSurfaceVariant, fontSize: 11),
+                            isDense: true,
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          onSubmitted: (v) =>
+                              _saveConfigValue('daily_faith_limit', v),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => _saveConfigValue(
+                            'daily_faith_limit',
+                            _dailyFaithLimitCtrl.text),
+                        icon: Icon(Icons.save_rounded,
+                            size: 20, color: cs.primary),
+                        tooltip: 'Salvar',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _dailyFaithLossLimitCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Limite diário de perda',
+                            helperText: 'Máx. pontos perdidos por dia',
+                            helperStyle: TextStyle(
+                                color: cs.onSurfaceVariant, fontSize: 11),
+                            isDense: true,
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          onSubmitted: (v) =>
+                              _saveConfigValue('daily_faith_loss_limit', v),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => _saveConfigValue(
+                            'daily_faith_loss_limit',
+                            _dailyFaithLossLimitCtrl.text),
                         icon: Icon(Icons.save_rounded,
                             size: 20, color: cs.primary),
                         tooltip: 'Salvar',
@@ -577,19 +645,46 @@ void _showThemeForm(BuildContext context, {PostTheme? existing}) {
 
                       setSheetState(() => isSaving = true);
 
-                      final client = Supabase.instance.client;
-                      if (existing != null) {
-                        await client
-                            .from('post_themes')
-                            .update({'name': name})
-                            .eq('id', existing.id);
-                      } else {
-                        await client
-                            .from('post_themes')
-                            .insert({'name': name});
+                      try {
+                        final client = Supabase.instance.client;
+                        if (existing != null) {
+                          await client
+                              .from('post_themes')
+                              .update({'name': name})
+                              .eq('id', existing.id);
+                        } else {
+                          await client
+                              .from('post_themes')
+                              .insert({'name': name});
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      } on PostgrestException catch (e) {
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                e.code == '23505'
+                                    ? 'Já existe um tema com esse nome'
+                                    : 'Erro: ${e.message}',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (ctx.mounted) {
+                          setSheetState(() => isSaving = false);
+                        }
                       }
-
-                      if (ctx.mounted) Navigator.pop(ctx);
                     },
               child: isSaving
                   ? const SizedBox(

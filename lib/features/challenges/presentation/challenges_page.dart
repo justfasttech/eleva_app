@@ -20,8 +20,6 @@ import '../../prayers/presentation/prayers_list_screen.dart';
 import '../../quiz/providers/quiz_provider.dart';
 import '../../quiz/presentation/quiz_play_screen.dart';
 import '../../quiz/presentation/quiz_results_screen.dart';
-import '../../diary/providers/diary_provider.dart';
-import '../../diary/presentation/new_entry_sheet.dart';
 import '../../quiz/presentation/quizzes_list_screen.dart';
 
 class ChallengesPage extends ConsumerWidget {
@@ -33,7 +31,8 @@ class ChallengesPage extends ConsumerWidget {
     final canUnlockReading = ref.watch(canUnlockTodayProvider('reading'));
     final canUnlockMeditation = ref.watch(canUnlockTodayProvider('meditation'));
     final canUnlockPrayer = ref.watch(canUnlockTodayProvider('prayer'));
-    final canUnlockQuiz = ref.watch(canUnlockTodayProvider('quiz'));
+    final completedIds = ref.watch(completedContentIdsProvider);
+    final completedQuizIds = ref.watch(completedQuizIdsProvider);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -106,6 +105,7 @@ class ChallengesPage extends ConsumerWidget {
                         title: r.title,
                         subtitle: r.reference ?? r.categoryLabel,
                         icon: Icons.auto_stories_rounded,
+                        isCompleted: completedIds.contains(r.id),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -166,6 +166,7 @@ class ChallengesPage extends ConsumerWidget {
                         icon: m.type == 'guiada'
                             ? Icons.self_improvement_rounded
                             : Icons.waves_rounded,
+                        isCompleted: completedIds.contains(m.id),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -224,6 +225,7 @@ class ChallengesPage extends ConsumerWidget {
                         title: p.title,
                         subtitle: 'Oração',
                         icon: Icons.volunteer_activism_rounded,
+                        isCompleted: completedIds.contains(p.id),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -239,21 +241,7 @@ class ChallengesPage extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // --- Quizzes Disponíveis ---
-            _buildSectionHeader(context, 'Quizzes', Icons.quiz_rounded,
-              onSeeAll: () {
-                final diaryOk = ref.read(hasFilledDiaryTodayProvider);
-                if (!diaryOk) {
-                  _showDiaryRequiredModal(context);
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ThemeSelectionScreen(contentType: 'quiz'),
-                  ),
-                );
-              },
-            ),
+            _buildSectionHeader(context, 'Quizzes', Icons.quiz_rounded),
             const SizedBox(height: 12),
             SizedBox(
               height: 150,
@@ -265,31 +253,34 @@ class ChallengesPage extends ConsumerWidget {
                   child: Text('Erro ao carregar', style: TextStyle(color: ElevaColors.textMuted)),
                 ),
                 data: (quizzes) {
-                  final published = quizzes.where((q) => q.isPublished).toList();
-                  final unlocked = published.where((q) => unlockedIds.contains(q.id)).take(6).toList();
-                  final locked = published.where((q) => !unlockedIds.contains(q.id)).take(3).toList();
-                  final allItems = [...unlocked, ...locked];
-                  if (allItems.isEmpty) {
+                  final readingsData = ref.watch(spiritualReadingsProvider).value ?? [];
+                  final available = quizzes.where((q) =>
+                    q.isPublished &&
+                    q.readingId != null &&
+                    completedIds.contains(q.readingId) &&
+                    !completedQuizIds.contains(q.id),
+                  ).take(6).toList();
+
+                  if (available.isEmpty) {
                     return const Center(
-                      child: Text('Em breve!', style: TextStyle(color: ElevaColors.textMuted)),
+                      child: Text(
+                        'Complete leituras para liberar quizzes',
+                        style: TextStyle(fontSize: 13, color: ElevaColors.textMuted),
+                      ),
                     );
                   }
                   return ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.only(left: 24, right: 60),
                     clipBehavior: Clip.none,
-                    itemCount: allItems.length,
+                    itemCount: available.length,
                     itemBuilder: (context, i) {
-                      final quiz = allItems[i];
-                      if (!unlockedIds.contains(quiz.id)) {
-                        return _LockedContentCard(
-                          title: quiz.title,
-                          onTap: () => _handleLockedQuizTap(context, ref, canUnlockQuiz),
-                        );
-                      }
+                      final quiz = available[i];
+                      final reading = readingsData.where((r) => r.id == quiz.readingId);
+                      final readingTitle = reading.isNotEmpty ? reading.first.title : '';
                       return _ContentCard(
                         title: quiz.title,
-                        subtitle: '${quiz.questions.length} perguntas',
+                        subtitle: readingTitle.isNotEmpty ? readingTitle : '${quiz.questions.length} perguntas',
                         icon: Icons.quiz_rounded,
                         onTap: () => Navigator.push(
                           context,
@@ -309,6 +300,7 @@ class ChallengesPage extends ConsumerWidget {
             Builder(builder: (context) {
               final attemptsAsync = ref.watch(userQuizAttemptsProvider);
               final quizzesAsync = ref.watch(quizzesProvider);
+              final readingsData = ref.watch(spiritualReadingsProvider).value ?? [];
               final attempts = attemptsAsync.value ?? [];
               final quizzes = quizzesAsync.value ?? [];
 
@@ -331,6 +323,9 @@ class ChallengesPage extends ConsumerWidget {
                         final quiz = quizzes.where((q) => q.id == attempt.quizId);
                         final title = quiz.isNotEmpty ? quiz.first.title : 'Quiz';
                         final total = quiz.isNotEmpty ? quiz.first.questions.length : attempt.correctCount;
+                        final readingId = quiz.isNotEmpty ? quiz.first.readingId : null;
+                        final reading = readingId != null ? readingsData.where((r) => r.id == readingId) : <SpiritualReading>[];
+                        final readingTitle = reading.isNotEmpty ? reading.first.title : '';
 
                         return _ContentCard(
                           title: title,
@@ -378,64 +373,6 @@ class ChallengesPage extends ConsumerWidget {
     Prayer prayer, AsyncValue<bool> canUnlockAsync,
   ) {
     _showThemeSelectionDialog(context, ref, 'prayer');
-  }
-
-  void _handleLockedQuizTap(
-    BuildContext context, WidgetRef ref,
-    AsyncValue<bool> canUnlockAsync,
-  ) {
-    final diaryOk = ref.read(hasFilledDiaryTodayProvider);
-    if (!diaryOk) {
-      _showDiaryRequiredModal(context);
-      return;
-    }
-    _showThemeSelectionDialog(context, ref, 'quiz');
-  }
-
-  void _showDiaryRequiredModal(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: ElevaColors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.book_rounded, color: ElevaColors.gold, size: 24),
-            SizedBox(width: 10),
-            Text(
-              'Diário pendente',
-              style: TextStyle(
-                color: ElevaColors.textDark,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Preencha seu diário de hoje antes de desbloquear um quiz.',
-          style: TextStyle(fontSize: 14, color: ElevaColors.textMuted),
-        ),
-        actions: [
-
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showNewEntrySheet(context);
-            },
-            child: const Text('Ir para o diário'),
-          ),
-          SizedBox(height:10),
-                    TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Agora não',
-              style: TextStyle(color: ElevaColors.textMuted),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showThemeSelectionDialog(
@@ -585,12 +522,14 @@ class _ContentCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isCompleted;
 
   const _ContentCard({
     required this.title,
     required this.subtitle,
     required this.icon,
     this.onTap,
+    this.isCompleted = false,
   });
 
   @override
@@ -609,14 +548,21 @@ class _ContentCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: ElevaColors.gold.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 17, color: ElevaColors.gold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: ElevaColors.gold.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 17, color: ElevaColors.gold),
+                ),
+                if (isCompleted)
+                  const Icon(Icons.check_circle_rounded, size: 20, color: Colors.green),
+              ],
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

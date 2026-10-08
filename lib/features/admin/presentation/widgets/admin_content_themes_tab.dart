@@ -169,6 +169,7 @@ void _showContentThemeForm(BuildContext context, {ContentTheme? existing}) {
   final descCtrl = TextEditingController(text: existing?.description ?? '');
   bool isActive = existing?.isActive ?? true;
   bool isSaving = false;
+  String? errorText;
 
   showModalBottomSheet(
     context: context,
@@ -226,6 +227,13 @@ void _showContentThemeForm(BuildContext context, {ContentTheme? existing}) {
               activeTrackColor: cs.primary,
               contentPadding: EdgeInsets.zero,
             ),
+            if (errorText != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                errorText!,
+                style: const TextStyle(color: Colors.red, fontSize: 13),
+              ),
+            ],
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: isSaving
@@ -234,7 +242,10 @@ void _showContentThemeForm(BuildContext context, {ContentTheme? existing}) {
                       final name = nameCtrl.text.trim();
                       if (name.isEmpty) return;
 
-                      setSheetState(() => isSaving = true);
+                      setSheetState(() {
+                        isSaving = true;
+                        errorText = null;
+                      });
 
                       final data = {
                         'name': name,
@@ -244,17 +255,32 @@ void _showContentThemeForm(BuildContext context, {ContentTheme? existing}) {
                         'is_active': isActive,
                       };
 
-                      final client = Supabase.instance.client;
-                      if (existing != null) {
-                        await client
-                            .from('content_themes')
-                            .update(data)
-                            .eq('id', existing.id);
-                      } else {
-                        await client.from('content_themes').insert(data);
+                      try {
+                        final client = Supabase.instance.client;
+                        if (existing != null) {
+                          await client
+                              .from('content_themes')
+                              .update(data)
+                              .eq('id', existing.id);
+                        } else {
+                          await client.from('content_themes').insert(data);
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      } on PostgrestException catch (e) {
+                        if (ctx.mounted) {
+                          setSheetState(() => errorText = e.code == '23505'
+                              ? 'Já existe um tema com esse nome'
+                              : 'Erro: ${e.message}');
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          setSheetState(() => errorText = 'Erro: $e');
+                        }
+                      } finally {
+                        if (ctx.mounted) {
+                          setSheetState(() => isSaving = false);
+                        }
                       }
-
-                      if (ctx.mounted) Navigator.pop(ctx);
                     },
               child: isSaving
                   ? const SizedBox(

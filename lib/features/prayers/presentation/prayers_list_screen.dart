@@ -17,6 +17,7 @@ class PrayersListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prayersAsync = ref.watch(prayersByThemeProvider(themeId));
     final unlockedIds = ref.watch(unlockedContentIdsProvider);
+    final completedIds = ref.watch(completedContentIdsProvider);
     final canUnlockAsync = ref.watch(canUnlockTodayProvider('prayer'));
 
     return Scaffold(
@@ -133,6 +134,19 @@ class PrayersListScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
+                      if (isUnlocked)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Icon(
+                            completedIds.contains(prayer.id)
+                                ? Icons.check_circle_rounded
+                                : Icons.chevron_right_rounded,
+                            size: 20,
+                            color: completedIds.contains(prayer.id)
+                                ? Colors.green
+                                : ElevaColors.textMuted,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -157,7 +171,7 @@ class PrayersListScreen extends ConsumerWidget {
         ..clearSnackBars()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Você já desbloqueou uma oração hoje. Volte amanhã após as 7h.'),
+            content: Text('Você só pode desbloquear um conteúdo por dia.'),
             backgroundColor: ElevaColors.textMuted,
           ),
         );
@@ -183,7 +197,7 @@ class PrayersListScreen extends ConsumerWidget {
               final success = await unlockContent(
                 contentType: 'prayer',
                 contentId: prayer.id,
-                faithPoints: prayer.faithPoints,
+                faithPoints: 0,
               );
               if (success && context.mounted) {
                 ref.invalidate(canUnlockTodayProvider('prayer'));
@@ -199,7 +213,7 @@ class PrayersListScreen extends ConsumerWidget {
                   ..clearSnackBars()
                   ..showSnackBar(
                     const SnackBar(
-                      content: Text('Não foi possível desbloquear. Tente novamente.'),
+                      content: Text('Você só pode desbloquear um conteúdo por dia.'),
                       backgroundColor: Colors.red,
                     ),
                   );

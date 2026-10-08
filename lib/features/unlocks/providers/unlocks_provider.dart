@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,6 +20,18 @@ final unlockedContentIdsProvider = Provider<Set<String>>((ref) {
   final unlocks = ref.watch(userUnlocksProvider);
   return unlocks.when(
     data: (list) => list.map((u) => u.contentId).toSet(),
+    loading: () => {},
+    error: (_, __) => {},
+  );
+});
+
+final completedContentIdsProvider = Provider<Set<String>>((ref) {
+  final unlocks = ref.watch(userUnlocksProvider);
+  return unlocks.when(
+    data: (list) => list
+        .where((u) => u.isCompleted)
+        .map((u) => u.contentId)
+        .toSet(),
     loading: () => {},
     error: (_, __) => {},
   );
@@ -58,12 +71,30 @@ Future<bool> unlockContent({
       'p_user_id': userId,
       'p_content_type': contentType,
       'p_content_id': contentId,
-      'p_faith_points': faithPoints,
+      'p_faith_points': faithPoints.toInt(),
       'p_tz_offset_minutes': tzOffset,
     });
 
     return result as bool? ?? false;
-  } catch (_) {
+  } catch (e) {
+    debugPrint('unlockContent error: $e');
+    return false;
+  }
+}
+
+Future<bool> markContentCompleted(String contentId) async {
+  try {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return false;
+
+    final result = await Supabase.instance.client.rpc(
+      'mark_content_completed',
+      params: {'p_user_id': userId, 'p_content_id': contentId},
+    );
+
+    return result as bool? ?? false;
+  } catch (e) {
+    debugPrint('markContentCompleted error: $e');
     return false;
   }
 }

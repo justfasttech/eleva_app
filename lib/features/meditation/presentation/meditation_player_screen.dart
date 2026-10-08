@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme.dart';
 import '../models/meditation.dart';
 import '../providers/meditation_provider.dart';
+import '../../unlocks/providers/unlocks_provider.dart';
 
 class MeditationPlayerScreen extends ConsumerStatefulWidget {
   final Meditation meditation;
@@ -31,6 +32,8 @@ class _MeditationPlayerScreenState extends ConsumerState<MeditationPlayerScreen>
   @override
   void initState() {
     super.initState();
+    final completedIds = ref.read(completedContentIdsProvider);
+    _completed = completedIds.contains(widget.meditation.id);
     _loadMedia();
   }
 
@@ -87,16 +90,13 @@ class _MeditationPlayerScreenState extends ConsumerState<MeditationPlayerScreen>
     }
   }
 
-  void _markCompleted() {
+  Future<void> _markCompleted() async {
     if (_completed) return;
-    setState(() => _completed = true);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Meditação concluída!'),
-        backgroundColor: ElevaColors.gold,
-      ),
-    );
+    final success = await markContentCompleted(widget.meditation.id);
+    if (success && mounted) {
+      ref.invalidate(userUnlocksProvider);
+      setState(() => _completed = true);
+    }
   }
 
   @override

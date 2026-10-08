@@ -130,7 +130,11 @@ class _MeditationsListScreenState extends ConsumerState<MeditationsListScreen> {
                         onTap: () => _handleLockedTap(context, meditation, canUnlockAsync),
                       );
                     }
-                    return _MeditationCard(meditation: meditation);
+                    final completedIds = ref.watch(completedContentIdsProvider);
+                    return _MeditationCard(
+                      meditation: meditation,
+                      isCompleted: completedIds.contains(meditation.id),
+                    );
                   },
                 );
               },
@@ -153,7 +157,7 @@ class _MeditationsListScreenState extends ConsumerState<MeditationsListScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Você já desbloqueou uma meditação hoje. Volte amanhã após as 7h.'),
+            content: Text('Você só pode desbloquear um conteúdo por dia.'),
             backgroundColor: ElevaColors.textMuted,
           ),
         );
@@ -178,7 +182,7 @@ class _MeditationsListScreenState extends ConsumerState<MeditationsListScreen> {
               final success = await unlockContent(
                 contentType: 'meditation',
                 contentId: meditation.id,
-                faithPoints: meditation.faithPoints,
+                faithPoints: 0,
               );
               if (success && context.mounted) {
                 ref.invalidate(canUnlockTodayProvider('meditation'));
@@ -194,7 +198,7 @@ class _MeditationsListScreenState extends ConsumerState<MeditationsListScreen> {
                   ..clearSnackBars()
                   ..showSnackBar(
                     const SnackBar(
-                      content: Text('Não foi possível desbloquear. Tente novamente.'),
+                      content: Text('Você só pode desbloquear um conteúdo por dia.'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -215,8 +219,9 @@ class _MeditationsListScreenState extends ConsumerState<MeditationsListScreen> {
 
 class _MeditationCard extends StatelessWidget {
   final Meditation meditation;
+  final bool isCompleted;
 
-  const _MeditationCard({required this.meditation});
+  const _MeditationCard({required this.meditation, this.isCompleted = false});
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +293,10 @@ class _MeditationCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded, size: 20, color: ElevaColors.textMuted),
+              if (isCompleted)
+                const Icon(Icons.check_circle_rounded, size: 20, color: Colors.green)
+              else
+                const Icon(Icons.chevron_right_rounded, size: 20, color: ElevaColors.textMuted),
             ],
           ),
         ),

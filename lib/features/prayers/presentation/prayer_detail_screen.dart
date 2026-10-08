@@ -1,35 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/theme.dart';
 import '../models/prayer.dart';
+import '../../unlocks/providers/unlocks_provider.dart';
 
-class PrayerDetailScreen extends StatefulWidget {
+class PrayerDetailScreen extends ConsumerStatefulWidget {
   final Prayer prayer;
 
   const PrayerDetailScreen({super.key, required this.prayer});
 
   @override
-  State<PrayerDetailScreen> createState() => _PrayerDetailScreenState();
+  ConsumerState<PrayerDetailScreen> createState() => _PrayerDetailScreenState();
 }
 
-class _PrayerDetailScreenState extends State<PrayerDetailScreen> {
+class _PrayerDetailScreenState extends ConsumerState<PrayerDetailScreen> {
   AudioPlayer? _audioPlayer;
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   bool _isLoadingMedia = false;
+  bool _completed = false;
   String? _mediaError;
 
   @override
   void initState() {
     super.initState();
+    final completedIds = ref.read(completedContentIdsProvider);
+    _completed = completedIds.contains(widget.prayer.id);
     if (widget.prayer.hasVideo) {
       _initVideo();
     }
     if (widget.prayer.hasAudio) {
       _initAudio();
+    }
+  }
+
+  Future<void> _markCompleted() async {
+    if (_completed) return;
+    final success = await markContentCompleted(widget.prayer.id);
+    if (success && mounted) {
+      ref.invalidate(userUnlocksProvider);
+      setState(() => _completed = true);
     }
   }
 
@@ -113,73 +127,96 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            if (prayer.hasVideo) _buildVideoPlayer(),
-            if (prayer.hasVideo) const SizedBox(height: 16),
-            if (prayer.hasAudio) _buildAudioPlayer(),
-            if (prayer.hasAudio) const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: ElevaColors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: ElevaColors.gold.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
+                  if (prayer.hasVideo) _buildVideoPlayer(),
+                  if (prayer.hasVideo) const SizedBox(height: 16),
+                  if (prayer.hasAudio) _buildAudioPlayer(),
+                  if (prayer.hasAudio) const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: ElevaColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 2),
                         ),
-                        child: const Icon(
-                          Icons.volunteer_activism_rounded,
-                          size: 20,
-                          color: ElevaColors.gold,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: ElevaColors.gold.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.volunteer_activism_rounded,
+                                size: 20,
+                                color: ElevaColors.gold,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Oração',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: ElevaColors.textMuted,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Oração',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: ElevaColors.textMuted,
+                        const SizedBox(height: 20),
+                        Divider(color: ElevaColors.offWhite, height: 1),
+                        const SizedBox(height: 20),
+                        SelectableText(
+                          prayer.content,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            height: 1.8,
+                            color: ElevaColors.textDark,
+                            letterSpacing: 0.2,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Divider(color: ElevaColors.offWhite, height: 1),
-                  const SizedBox(height: 20),
-                  SelectableText(
-                    prayer.content,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      height: 1.8,
-                      color: ElevaColors.textDark,
-                      letterSpacing: 0.2,
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(context).padding.bottom + 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _completed ? null : _markCompleted,
+                icon: Icon(_completed ? Icons.check_circle_rounded : Icons.check_rounded),
+                label: Text(_completed ? 'Concluída!' : 'Marcar como concluída'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _completed ? ElevaColors.gold.withValues(alpha: 0.3) : ElevaColors.gold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

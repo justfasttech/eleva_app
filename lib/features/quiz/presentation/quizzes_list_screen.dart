@@ -87,7 +87,11 @@ class _QuizzesListScreenState extends ConsumerState<QuizzesListScreen> {
                       _handleLockedTap(context, quiz, canUnlockAsync),
                 );
               }
-              return _QuizCard(quiz: quiz);
+              final completedIds = ref.watch(completedContentIdsProvider);
+              return _QuizCard(
+                quiz: quiz,
+                isCompleted: completedIds.contains(quiz.id),
+              );
             },
           );
         },
@@ -108,7 +112,7 @@ class _QuizzesListScreenState extends ConsumerState<QuizzesListScreen> {
         ..showSnackBar(
           const SnackBar(
             content: Text(
-                'Você já desbloqueou um quiz hoje. Volte amanhã após as 7h.'),
+                'Você só pode desbloquear um conteúdo por dia.'),
             backgroundColor: ElevaColors.textMuted,
           ),
         );
@@ -151,7 +155,7 @@ class _QuizzesListScreenState extends ConsumerState<QuizzesListScreen> {
                   ..clearSnackBars()
                   ..showSnackBar(
                     const SnackBar(
-                      content: Text('Não foi possível desbloquear. Tente novamente.'),
+                      content: Text('Você só pode desbloquear um conteúdo por dia.'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -171,8 +175,9 @@ class _QuizzesListScreenState extends ConsumerState<QuizzesListScreen> {
 
 class _QuizCard extends StatelessWidget {
   final Quiz quiz;
+  final bool isCompleted;
 
-  const _QuizCard({required this.quiz});
+  const _QuizCard({required this.quiz, this.isCompleted = false});
 
   @override
   Widget build(BuildContext context) {
@@ -240,8 +245,11 @@ class _QuizCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 20, color: ElevaColors.textMuted),
+              if (isCompleted)
+                const Icon(Icons.check_circle_rounded, size: 20, color: Colors.green)
+              else
+                const Icon(Icons.chevron_right_rounded,
+                    size: 20, color: ElevaColors.textMuted),
             ],
           ),
         ),

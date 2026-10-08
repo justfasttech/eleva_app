@@ -141,7 +141,11 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
                         onTap: () => _handleLockedTap(context, reading, canUnlockAsync),
                       );
                     }
-                    return _ReadingCard(reading: reading);
+                    final completedIds = ref.watch(completedContentIdsProvider);
+                    return _ReadingCard(
+                      reading: reading,
+                      isCompleted: completedIds.contains(reading.id),
+                    );
                   },
                 );
               },
@@ -164,7 +168,7 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Você já desbloqueou uma leitura hoje. Volte amanhã após as 7h.'),
+            content: Text('Você só pode desbloquear um conteúdo por dia.'),
             backgroundColor: ElevaColors.textMuted,
           ),
         );
@@ -190,7 +194,7 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
               final success = await unlockContent(
                 contentType: 'reading',
                 contentId: reading.id,
-                faithPoints: reading.faithPoints,
+                faithPoints: 0,
               );
               if (success && context.mounted) {
                 ref.invalidate(canUnlockTodayProvider('reading'));
@@ -206,7 +210,7 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
                   ..clearSnackBars()
                   ..showSnackBar(
                     const SnackBar(
-                      content: Text('Não foi possível desbloquear. Tente novamente.'),
+                      content: Text('Você só pode desbloquear um conteúdo por dia.'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -226,8 +230,9 @@ class _ReadingsListScreenState extends ConsumerState<ReadingsListScreen> {
 
 class _ReadingCard extends StatelessWidget {
   final SpiritualReading reading;
+  final bool isCompleted;
 
-  const _ReadingCard({required this.reading});
+  const _ReadingCard({required this.reading, this.isCompleted = false});
 
   IconData get _categoryIcon => switch (reading.category) {
     'textos' => Icons.auto_stories_rounded,
@@ -303,7 +308,10 @@ class _ReadingCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded, size: 20, color: ElevaColors.textMuted),
+              if (isCompleted)
+                const Icon(Icons.check_circle_rounded, size: 20, color: Colors.green)
+              else
+                const Icon(Icons.chevron_right_rounded, size: 20, color: ElevaColors.textMuted),
             ],
           ),
         ),
