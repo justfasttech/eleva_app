@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/supabase_config.dart';
+import 'features/notifications/services/push_service.dart';
 import 'features/subscription/services/revenuecat_service.dart';
 
 Future<void> main() async {
@@ -20,6 +22,14 @@ Future<void> main() async {
   }
 
   if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint('Firebase init error: $e');
+    }
+
+    await PushService.initialize();
+
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
       await RevenueCatService.init(userId: userId);
