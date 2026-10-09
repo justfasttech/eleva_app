@@ -4,6 +4,7 @@ class UserContentUnlock {
   final String contentType;
   final String contentId;
   final DateTime unlockedAt;
+  final DateTime? completedAt;
 
   const UserContentUnlock({
     required this.id,
@@ -11,7 +12,10 @@ class UserContentUnlock {
     required this.contentType,
     required this.contentId,
     required this.unlockedAt,
+    this.completedAt,
   });
+
+  bool get isCompleted => completedAt != null;
 
   factory UserContentUnlock.fromMap(Map<String, dynamic> map) {
     return UserContentUnlock(
@@ -20,6 +24,9 @@ class UserContentUnlock {
       contentType: map['content_type'] as String,
       contentId: map['content_id'] as String,
       unlockedAt: DateTime.parse(map['unlocked_at'] as String),
+      completedAt: map['completed_at'] != null
+          ? DateTime.parse(map['completed_at'] as String)
+          : null,
     );
   }
 }

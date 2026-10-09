@@ -73,6 +73,7 @@ class Quiz {
   final String id;
   final String title;
   final String themeId;
+  final String? readingId;
   final double faithPointsCorrect;
   final double faithPointsWrong;
   final bool isPublished;
@@ -84,6 +85,7 @@ class Quiz {
     required this.id,
     required this.title,
     required this.themeId,
+    this.readingId,
     required this.faithPointsCorrect,
     required this.faithPointsWrong,
     required this.isPublished,
@@ -106,6 +108,7 @@ class Quiz {
       id: map['id'] as String,
       title: map['title'] as String? ?? '',
       themeId: map['theme_id'] as String? ?? '',
+      readingId: map['reading_id'] as String?,
       faithPointsCorrect: (map['faith_points_correct'] as num?)?.toDouble() ?? 3.0,
       faithPointsWrong: (map['faith_points_wrong'] as num?)?.toDouble() ?? -1.0,
       isPublished: map['is_published'] as bool? ?? true,
@@ -119,6 +122,7 @@ class Quiz {
     return {
       'title': title,
       'theme_id': themeId,
+      'reading_id': readingId,
       'faith_points_correct': faithPointsCorrect,
       'faith_points_wrong': faithPointsWrong,
       'is_published': isPublished,
@@ -130,6 +134,7 @@ class Quiz {
       id: id,
       title: title,
       themeId: themeId,
+      readingId: readingId,
       faithPointsCorrect: faithPointsCorrect,
       faithPointsWrong: faithPointsWrong,
       isPublished: isPublished,

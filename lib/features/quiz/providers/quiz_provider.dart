@@ -58,3 +58,10 @@ final quizAttemptForProvider =
   final matches = attempts.where((a) => a.quizId == quizId);
   return matches.isNotEmpty ? matches.first : null;
 });
+
+final quizForReadingProvider =
+    Provider.family<Quiz?, String>((ref, readingId) {
+  final quizzes = ref.watch(quizzesProvider).value ?? [];
+  final matches = quizzes.where((q) => q.readingId == readingId);
+  return matches.isNotEmpty ? matches.first : null;
+});
