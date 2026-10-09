@@ -17,7 +17,6 @@ class _AdminNotificationsPageState
     extends ConsumerState<AdminNotificationsPage> {
   final _titleCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
-  String _audience = 'todos';
   bool _isSending = false;
 
   @override
@@ -38,7 +37,7 @@ class _AdminNotificationsPageState
       'title': title,
       'body': body,
       'type': 'admin',
-      'audience': _audience,
+      'audience': 'todos',
     });
 
     _titleCtrl.clear();
@@ -133,65 +132,6 @@ class _AdminNotificationsPageState
                       alignLabelWithHint: true,
                     ),
                     maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Público-alvo',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface)),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      ('todos', 'Todos', Icons.groups_rounded),
-                      ('free', 'Free', Icons.person_rounded),
-                      ('premium', 'Premium', Icons.star_rounded),
-                    ].map((option) {
-                      final isSelected = _audience == option.$1;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: GestureDetector(
-                          onTap: () =>
-                              setState(() => _audience = option.$1),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? cs.primary
-                                  : cs.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isSelected
-                                    ? cs.primary
-                                    : cs.onSurfaceVariant
-                                        .withValues(alpha: 0.2),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(option.$3,
-                                    size: 12,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : cs.onSurfaceVariant),
-                                const SizedBox(width: 4),
-                                Text(option.$2,
-                                    style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w600,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : cs.onSurfaceVariant)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
