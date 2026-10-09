@@ -21,15 +21,15 @@ Future<void> main() async {
     debugPrint('Supabase init error: $e');
   }
 
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase init error: $e');
+  }
+
+  await PushService.initialize();
+
   if (!kIsWeb) {
-    try {
-      await Firebase.initializeApp();
-    } catch (e) {
-      debugPrint('Firebase init error: $e');
-    }
-
-    await PushService.initialize();
-
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
       await RevenueCatService.init(userId: userId);

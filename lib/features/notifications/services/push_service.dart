@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const _vapidKey =
+    'BN_xnUXoyOUWPsZ1kd0tt1aEm82qat8m5dhrMTty19hDUVX-tYphND94WaDOw2VFp8YUySnl2WsTwG0w4zC66SM';
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('Push recebido em background: ${message.notification?.title}');
@@ -12,12 +15,12 @@ class PushService {
   static final _localNotifications = FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
-    if (kIsWeb) return;
-
     try {
-      FirebaseMessaging.onBackgroundMessage(
-        _firebaseMessagingBackgroundHandler,
-      );
+      if (!kIsWeb) {
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
+      }
 
       final messaging = FirebaseMessaging.instance;
 
@@ -32,9 +35,14 @@ class PushService {
         return;
       }
 
-      await _initLocalNotifications();
+      if (!kIsWeb) {
+        await _initLocalNotifications();
+      }
 
-      final token = await messaging.getToken();
+      final token = kIsWeb
+          ? await messaging.getToken(vapidKey: _vapidKey)
+          : await messaging.getToken();
+
       if (token != null) {
         await _saveToken(token);
       }
@@ -80,8 +88,14 @@ class PushService {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
-    final platform =
-        defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+    String platform;
+    if (kIsWeb) {
+      platform = 'web';
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      platform = 'ios';
+    } else {
+      platform = 'android';
+    }
 
     try {
       await Supabase.instance.client.from('push_tokens').upsert(
@@ -100,6 +114,8 @@ class PushService {
   static void _handleForeground(RemoteMessage message) {
     final notification = message.notification;
     if (notification == null) return;
+
+    if (kIsWeb) return;
 
     _localNotifications.show(
       notification.hashCode,
@@ -124,7 +140,9 @@ class PushService {
     if (user == null) return;
 
     try {
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = kIsWeb
+          ? await FirebaseMessaging.instance.getToken(vapidKey: _vapidKey)
+          : await FirebaseMessaging.instance.getToken();
       if (token != null) {
         await Supabase.instance.client
             .from('push_tokens')
