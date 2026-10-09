@@ -141,22 +141,22 @@ class _AdminNotificationsPageState
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface)),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                  Row(
                     children: [
                       ('todos', 'Todos', Icons.groups_rounded),
                       ('free', 'Free', Icons.person_rounded),
                       ('premium', 'Premium', Icons.star_rounded),
                     ].map((option) {
                       final isSelected = _audience == option.$1;
-                      return GestureDetector(
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: GestureDetector(
                           onTap: () =>
                               setState(() => _audience = option.$1),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 10),
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? cs.primary
@@ -174,14 +174,14 @@ class _AdminNotificationsPageState
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(option.$3,
-                                    size: 16,
+                                    size: 12,
                                     color: isSelected
                                         ? Colors.white
                                         : cs.onSurfaceVariant),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 4),
                                 Text(option.$2,
                                     style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 9,
                                         fontWeight: FontWeight.w600,
                                         color: isSelected
                                             ? Colors.white
@@ -189,6 +189,7 @@ class _AdminNotificationsPageState
                               ],
                             ),
                           ),
+                        ),
                       );
                     }).toList(),
                   ),
