@@ -20,7 +20,7 @@ final faithHistoryProvider =
       .select('faith_level, recorded_date')
       .eq('user_id', user.id)
       .order('recorded_date', ascending: false)
-      .limit(10);
+      .limit(7);
 
   final entries = (response as List)
       .map((row) => FaithHistoryEntry(

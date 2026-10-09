@@ -49,6 +49,10 @@
 	<string>O Eleva precisa acessar o microfone para gravação de áudio nas meditações guiadas.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O Eleva pode usar sua localização para personalizar conteúdos e eventos próximos a você.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

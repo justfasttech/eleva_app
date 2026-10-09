@@ -152,7 +152,6 @@ class _FriendTreeCard extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: ElevaColors.offWhite,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: ElevaColors.goldLight.withValues(alpha: 0.5),

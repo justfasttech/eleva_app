@@ -175,12 +175,23 @@ class _Chart extends StatelessWidget {
   final List<FaithHistoryEntry> entries;
   const _Chart({required this.entries});
 
+  static const _totalSlots = 7;
+
   @override
   Widget build(BuildContext context) {
     final spots = <FlSpot>[];
     for (var i = 0; i < entries.length; i++) {
       spots.add(FlSpot(i.toDouble(), entries[i].faithLevel.toDouble()));
     }
+
+    final lastDate = entries.isNotEmpty
+        ? entries.last.date
+        : DateTime.now();
+    final allDates = List.generate(_totalSlots, (i) {
+      if (i < entries.length) return entries[i].date;
+      final daysAfter = i - entries.length + 1;
+      return lastDate.add(Duration(days: daysAfter));
+    });
 
     final values = entries.map((e) => e.faithLevel).toList();
     final dataMin = values.reduce((a, b) => a < b ? a : b);
@@ -194,6 +205,8 @@ class _Chart extends StatelessWidget {
 
     return LineChart(
       LineChartData(
+        minX: 0,
+        maxX: (_totalSlots - 1).toDouble(),
         minY: chartMin,
         maxY: chartMax,
         clipData: const FlClipData.all(),
@@ -236,18 +249,20 @@ class _Chart extends StatelessWidget {
               interval: 1,
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
-                if (idx < 0 || idx >= entries.length) {
+                if (idx < 0 || idx >= _totalSlots) {
                   return const SizedBox.shrink();
                 }
-                if (entries.length > 5 && idx % 2 != 0) {
+                if (idx % 2 != 0 && idx != _totalSlots - 1) {
                   return const SizedBox.shrink();
                 }
-                final d = entries[idx].date;
+                final d = allDates[idx];
                 return Text(
                   '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: ElevaColors.textMuted,
+                    color: idx < entries.length
+                        ? ElevaColors.textMuted
+                        : ElevaColors.textMuted.withValues(alpha: 0.4),
                   ),
                 );
               },
