@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/providers/user_profile_provider.dart';
 import '../../verses/models/daily_verse.dart';
 import '../models/app_notification.dart';
 
@@ -22,6 +23,9 @@ final notificationsProvider =
   } catch (_) {
     // RLS blocks non-admin inserts; verse still shown via todayVerseProvider
   }
+
+  final profile = ref.watch(userProfileProvider).value;
+  final isPremium = profile?.isPremium ?? false;
 
   final readIds = <String>{};
 
@@ -43,7 +47,13 @@ final notificationsProvider =
     yield rows
         .where((row) {
           final createdAt = DateTime.parse(row['created_at'] as String);
-          return !createdAt.isBefore(userCreatedAt);
+          if (createdAt.isBefore(userCreatedAt)) return false;
+          final audience = row['audience'] as String? ?? 'todos';
+          if (audience == 'premium' && !isPremium) return false;
+          if (audience == 'free' && isPremium) return false;
+          final targetUserId = row['target_user_id'] as String?;
+          if (targetUserId != null && targetUserId != user.id) return false;
+          return true;
         })
         .map((row) {
           final id = row['id'] as String;
