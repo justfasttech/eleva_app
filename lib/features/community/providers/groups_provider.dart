@@ -69,6 +69,28 @@ final userOwnsGroupProvider = FutureProvider<bool>((ref) async {
   return rows.isNotEmpty;
 });
 
+final pendingGroupRequestsCountProvider = StreamProvider<int>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(0);
+
+  return Supabase.instance.client
+      .from('group_join_requests')
+      .stream(primaryKey: ['id'])
+      .asyncMap((rows) async {
+    final myGroups = await Supabase.instance.client
+        .from('groups')
+        .select('id')
+        .eq('creator_id', user.id);
+
+    final myGroupIds = myGroups.map((r) => r['id'] as String).toSet();
+    return rows
+        .where((r) =>
+            r['status'] == 'pending' &&
+            myGroupIds.contains(r['group_id']))
+        .length;
+  });
+});
+
 final groupPostsProvider =
     StreamProvider.family<List<GroupPost>, String>((ref, groupId) {
   return Supabase.instance.client
@@ -110,12 +132,16 @@ Future<void> requestToJoinGroup({
   required String groupName,
   String message = '',
 }) async {
-  await Supabase.instance.client.from('group_join_requests').insert({
-    'group_id': groupId,
-    'user_id': userId,
-    'user_name': userName,
-    'message': message,
-  });
+  await Supabase.instance.client.from('group_join_requests').upsert(
+    {
+      'group_id': groupId,
+      'user_id': userId,
+      'user_name': userName,
+      'message': message,
+      'status': 'pending',
+    },
+    onConflict: 'group_id,user_id',
+  );
 
   await createUserNotification(
     targetUserId: groupCreatorId,
@@ -131,16 +157,28 @@ Future<void> respondToJoinRequest({
   required String groupId,
   required String userId,
 }) async {
-  await Supabase.instance.client
-      .from('group_join_requests')
-      .update({'status': status}).eq('id', requestId);
+  final client = Supabase.instance.client;
 
   if (status == 'accepted') {
-    await Supabase.instance.client.from('group_members').insert({
-      'group_id': groupId,
-      'user_id': userId,
-    });
+    await client.from('group_members').upsert(
+      {'group_id': groupId, 'user_id': userId},
+      onConflict: 'group_id,user_id',
+    );
+
+    final countResult = await client
+        .from('group_members')
+        .select()
+        .eq('group_id', groupId)
+        .count(CountOption.exact);
+    await client
+        .from('groups')
+        .update({'members_count': countResult.count})
+        .eq('id', groupId);
   }
+
+  await client
+      .from('group_join_requests')
+      .update({'status': status}).eq('id', requestId);
 }
 
 Future<void> createGroupPost({

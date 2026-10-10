@@ -26,12 +26,24 @@ class _CommunityPageState extends ConsumerState<CommunityPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging || _tabController.index != 2) return;
+    final notifs = ref.read(notificationsProvider).value ?? [];
+    final chatNotifs = notifs.where((n) => !n.isRead && n.type == 'unread_messages').toList();
+    if (chatNotifs.isEmpty) return;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    markAllAsRead(chatNotifs.map((n) => n.id).toList(), userId);
   }
 
   @override
@@ -95,10 +107,23 @@ class _CommunityPageState extends ConsumerState<CommunityPage>
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
                 padding: const EdgeInsets.all(4),
-                tabs: const [
-                  Tab(text: 'Fórum'),
-                  Tab(text: 'Grupos'),
-                  Tab(text: 'Chat'),
+                tabs: [
+                  const Tab(text: 'Fórum'),
+                  const Tab(text: 'Grupos'),
+                  Tab(
+                    child: Badge(
+                      isLabelVisible: (ref.watch(unreadChatCountProvider)) > 0,
+                      label: Text(
+                        '${ref.watch(unreadChatCountProvider)}',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      backgroundColor: ElevaColors.gold,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('Chat'),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

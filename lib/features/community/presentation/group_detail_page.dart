@@ -213,6 +213,13 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
     final bodyController = TextEditingController();
     final rootMessenger = ScaffoldMessenger.of(context);
 
+    bool isSaving = false;
+    String? errorMessage;
+    Uint8List? imageBytes;
+    String? imageFileName;
+    Uint8List? videoBytes;
+    String? videoFileName;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -221,13 +228,6 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        bool isSaving = false;
-        String? errorMessage;
-        Uint8List? imageBytes;
-        String? imageFileName;
-        Uint8List? videoBytes;
-        String? videoFileName;
-
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Padding(
             padding: EdgeInsets.fromLTRB(
@@ -324,7 +324,7 @@ class _GroupDetailPageState extends ConsumerState<GroupDetailPage> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () async {
-                            final result = await FilePicker.platform.pickFiles(type: FileType.media);
+                            final result = await FilePicker.platform.pickFiles(type: FileType.media, withData: true);
                             if (result == null || result.files.isEmpty) return;
                             final file = result.files.first;
                             if (file.bytes == null) return;

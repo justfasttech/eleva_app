@@ -244,6 +244,11 @@ class _GroupCard extends ConsumerWidget {
     final memberships =
         ref.watch(userGroupMembershipsProvider).value ?? {};
     final isMember = memberships.contains(group.id);
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final isCreator = currentUserId == group.creatorId;
+    final pendingCount = isCreator
+        ? (ref.watch(groupJoinRequestsProvider(group.id)).value?.length ?? 0)
+        : 0;
 
     return GestureDetector(
       onTap: () async {
@@ -276,15 +281,20 @@ class _GroupCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [ElevaColors.gold, ElevaColors.goldLight]),
-                    borderRadius: BorderRadius.circular(12),
+                Badge(
+                  isLabelVisible: pendingCount > 0,
+                  label: Text('$pendingCount', style: const TextStyle(fontSize: 10)),
+                  backgroundColor: ElevaColors.gold,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [ElevaColors.gold, ElevaColors.goldLight]),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(group.icon, size: 22, color: Colors.white),
                   ),
-                  child: Icon(group.icon, size: 22, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

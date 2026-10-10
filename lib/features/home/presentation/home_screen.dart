@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../../challenges/presentation/challenges_page.dart';
 import '../../community/presentation/community_page.dart';
+import '../../community/providers/friends_provider.dart';
+import '../../community/providers/groups_provider.dart';
 import '../../diary/presentation/diary_page.dart';
+import '../../notifications/providers/notifications_provider.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../providers/daily_faith_merger.dart';
 import 'dashboard_page.dart';
@@ -32,6 +35,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     ref.watch(dailyFaithMergerProvider);
     final currentIndex = ref.watch(homeTabIndexProvider);
+    final friendRequests = ref.watch(pendingFriendRequestsProvider).value?.length ?? 0;
+    final groupRequests = ref.watch(pendingGroupRequestsCountProvider).value ?? 0;
+    final unreadChat = ref.watch(unreadChatCountProvider);
+    final communityBadge = friendRequests + groupRequests + unreadChat;
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
@@ -61,24 +68,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           showSelectedLabels: false,
           showUnselectedLabels: false,
           iconSize: 26,
-          items: const [
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
               icon: Icon(Icons.star_rounded),
               label: '',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.edit_note_rounded),
               label: '',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.home_rounded),
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.groups_rounded),
+              icon: Badge(
+                isLabelVisible: communityBadge > 0,
+                label: Text('$communityBadge', style: const TextStyle(fontSize: 10)),
+                backgroundColor: ElevaColors.gold,
+                child: const Icon(Icons.groups_rounded),
+              ),
               label: '',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.person_rounded),
               label: '',
             ),

@@ -142,6 +142,16 @@ class _ForumTabState extends ConsumerState<ForumTab> {
     final titleController = TextEditingController();
     final bodyController = TextEditingController();
     final rootMessenger = ScaffoldMessenger.of(context);
+    final themes = ref.read(postThemesProvider).value ?? [];
+
+    bool isSaving = false;
+    String? selectedThemeId;
+    String? errorMessage;
+    Uint8List? imageBytes;
+    String? imageFileName;
+    Uint8List? videoBytes;
+    String? videoFileName;
+    bool isQuestion = false;
 
     showModalBottomSheet(
       context: context,
@@ -151,16 +161,6 @@ class _ForumTabState extends ConsumerState<ForumTab> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        bool isSaving = false;
-        String? selectedThemeId;
-        String? errorMessage;
-        Uint8List? imageBytes;
-        String? imageFileName;
-        Uint8List? videoBytes;
-        String? videoFileName;
-        bool isQuestion = false;
-        final themes = ref.read(postThemesProvider).value ?? [];
-
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Padding(
             padding: EdgeInsets.fromLTRB(
@@ -289,7 +289,7 @@ class _ForumTabState extends ConsumerState<ForumTab> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () async {
-                            final result = await FilePicker.platform.pickFiles(type: FileType.media);
+                            final result = await FilePicker.platform.pickFiles(type: FileType.media, withData: true);
                             if (result == null || result.files.isEmpty) return;
                             final file = result.files.first;
                             if (file.bytes == null) return;

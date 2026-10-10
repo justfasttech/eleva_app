@@ -62,6 +62,11 @@ final unreadCountProvider = Provider<int>((ref) {
   return notifs.where((n) => !n.isRead).length;
 });
 
+final unreadChatCountProvider = Provider<int>((ref) {
+  final notifs = ref.watch(notificationsProvider).value ?? [];
+  return notifs.where((n) => !n.isRead && n.type == 'unread_messages').length;
+});
+
 Future<void> _ensureDailyVerse(SupabaseClient client) async {
   final today = DateTime.now();
   final startOfDay = DateTime(today.year, today.month, today.day);
