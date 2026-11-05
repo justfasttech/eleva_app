@@ -5,7 +5,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 class RevenueCatService {
   static const _googleApiKey = 'goog_ZgVxLKMtEIQfGWIgfWbtHfGXpSh';
   static const _appleApiKey = 'appl_KsTRmgZkrWLsEhMRcURaxFPamvC';
-  static const _webApiKey = 'strp_GoShmgWbMKBGtkfeYctqVlXBkCq';
+  // TODO: trocar para produção antes de publicar: strp_GoShmgWbMKBGtkfeYctqVlXBkCq
+  static const _webApiKey = 'strp_sb_tTTJzuVsCBpmpNKCJXtxAIEQ';
 
   static bool _initialized = false;
 
