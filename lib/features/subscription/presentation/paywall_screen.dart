@@ -87,7 +87,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       final success = await RevenueCatService.purchasePackage(pkg);
       if (success) {
         await _syncSubscriptionToSupabase();
-        await RevenueCatService.syncSubscriptionStatus();
         if (mounted) {
           ref.invalidate(userProfileProvider);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -122,7 +121,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       if (customerInfo != null &&
           customerInfo.entitlements.all['premium']?.isActive == true) {
         await _syncSubscriptionToSupabase();
-        await RevenueCatService.syncSubscriptionStatus();
         if (mounted) {
           ref.invalidate(userProfileProvider);
           ScaffoldMessenger.of(context).showSnackBar(

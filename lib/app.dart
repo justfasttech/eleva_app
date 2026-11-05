@@ -50,7 +50,6 @@ class _AppState extends ConsumerState<App> {
   Future<void> _initRevenueCat(String userId) async {
     await RevenueCatService.init(userId: userId);
     await RevenueCatService.logIn(userId);
-    await RevenueCatService.syncSubscriptionStatus();
   }
 
   @override
