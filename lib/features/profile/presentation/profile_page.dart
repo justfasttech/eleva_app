@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth_error_translator.dart';
 import '../../../core/theme.dart';
-import '../../subscription/presentation/paywall_screen.dart';
+import '../../subscription/presentation/manage_subscription_screen.dart';
 import '../../subscription/presentation/subscription_status_card.dart';
 import 'edit_profile_page.dart';
 import 'privacy_policy_page.dart';
@@ -53,7 +53,7 @@ class ProfilePage extends ConsumerWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const PaywallScreen(),
+                    builder: (_) => const ManageSubscriptionScreen(),
                   ),
                 );
               },
