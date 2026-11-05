@@ -84,23 +84,37 @@ class RevenueCatService {
       final entitlement = customerInfo.entitlements.all['premium'];
       final isActive = entitlement?.isActive == true;
 
-      final updates = <String, dynamic>{
-        'subscription_status': isActive ? 'premium' : 'free',
-      };
-
       if (isActive && entitlement != null) {
-        updates['subscription_end_date'] = entitlement.expirationDate;
+        await Supabase.instance.client.from('profiles').update({
+          'subscription_status': 'premium',
+          'subscription_end_date': entitlement.expirationDate,
+        }).eq('id', userId);
+        return;
       }
 
-      if (!isActive) {
-        updates['subscription_period'] = null;
-        updates['subscription_end_date'] = null;
-      }
-
-      await Supabase.instance.client
+      // RevenueCat diz inativo — verificar se subscription_end_date no banco
+      // ainda está no futuro (cancelado mas dentro do período pago)
+      final profile = await Supabase.instance.client
           .from('profiles')
-          .update(updates)
-          .eq('id', userId);
+          .select('subscription_end_date')
+          .eq('id', userId)
+          .single();
+
+      final endDateStr = profile['subscription_end_date'] as String?;
+      if (endDateStr != null) {
+        final endDate = DateTime.tryParse(endDateStr);
+        if (endDate != null && endDate.isAfter(DateTime.now())) {
+          // Período pago ainda válido — não mudar para free
+          return;
+        }
+      }
+
+      // Realmente expirou
+      await Supabase.instance.client.from('profiles').update({
+        'subscription_status': 'free',
+        'subscription_period': null,
+        'subscription_end_date': null,
+      }).eq('id', userId);
     } catch (_) {}
   }
 

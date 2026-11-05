@@ -62,7 +62,72 @@ class _ManageSubscriptionScreenState
     final isPaid = status == 'premium';
 
     if (!isPaid) {
-      return const PaywallScreen();
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded,
+                color: ElevaColors.textDark),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Gerenciar assinatura',
+            style: TextStyle(color: ElevaColors.textDark),
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.workspace_premium_rounded,
+                    color: ElevaColors.gold, size: 64),
+                const SizedBox(height: 16),
+                const Text(
+                  'Você não tem uma assinatura ativa',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: ElevaColors.textDark,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Assine o Premium para ter acesso ilimitado a todos os conteúdos.',
+                  style: TextStyle(fontSize: 14, color: ElevaColors.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                            builder: (_) => const PaywallScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ElevaColors.gold,
+                      foregroundColor: ElevaColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text('Ver planos',
+                        style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     final planName = period == 'annual' ? 'Premium Anual' : 'Premium Mensal';
