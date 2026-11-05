@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme.dart';
 import '../../auth/providers/user_profile_provider.dart';
 import '../../notifications/providers/notifications_provider.dart';
+import '../../subscription/providers/subscription_provider.dart';
+import '../../subscription/presentation/paywall_screen.dart';
 import '../../verses/providers/verses_provider.dart';
 import 'notifications_page.dart';
 import 'widgets/daily_tasks.dart';
@@ -268,7 +270,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 color: ElevaColors.textDark,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            _SubscriptionBanner(),
+            const SizedBox(height: 12),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -351,6 +355,83 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             const SizedBox(height: 24),
             const FaithLineChart(),
             const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SubscriptionBanner extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(subscriptionStatusProvider);
+    final isTrialActive = ref.watch(isTrialActiveProvider);
+    final trialDays = ref.watch(trialDaysRemainingProvider);
+
+    final bool isPaid = status == 'premium';
+    if (isPaid) return const SizedBox.shrink();
+
+    final String title;
+    final String subtitle;
+    final IconData icon;
+
+    if (isTrialActive) {
+      title = 'Período de teste';
+      subtitle = '$trialDays dias restantes — Assine e garanta acesso ilimitado';
+      icon = Icons.access_time_rounded;
+    } else {
+      title = 'Seu teste expirou';
+      subtitle = 'Assine agora para continuar com acesso ilimitado';
+      icon = Icons.lock_outline_rounded;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const PaywallScreen()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [ElevaColors.gold, ElevaColors.goldDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: ElevaColors.white, size: 26),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: ElevaColors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ElevaColors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: ElevaColors.white, size: 16),
           ],
         ),
       ),
