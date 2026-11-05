@@ -56,18 +56,55 @@ serve(async (req: Request) => {
   // Buscar stripe_customer_id do usuário
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, email")
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile?.stripe_customer_id) {
+  if (profileError || !profile) {
     return new Response(
-      JSON.stringify({ error: "Stripe customer not found for this user" }),
+      JSON.stringify({ error: "User profile not found" }),
       { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
-  const customerId = profile.stripe_customer_id;
+  let customerId = profile.stripe_customer_id;
+
+  // Fallback: buscar customer no Stripe pelo email
+  if (!customerId) {
+    const email = profile.email || user.email;
+    if (!email) {
+      return new Response(
+        JSON.stringify({ error: "No Stripe customer ID or email found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const searchResponse = await fetch(
+      `https://api.stripe.com/v1/customers/search?query=email:'${encodeURIComponent(email)}'`,
+      {
+        headers: { Authorization: `Bearer ${stripeSecretKey}` },
+      },
+    );
+
+    if (searchResponse.ok) {
+      const searchData = await searchResponse.json();
+      if (searchData.data && searchData.data.length > 0) {
+        customerId = searchData.data[0].id;
+        // Salvar para próximas vezes
+        await supabase
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", user.id);
+      }
+    }
+
+    if (!customerId) {
+      return new Response(
+        JSON.stringify({ error: "Stripe customer not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  }
 
   try {
     // Buscar assinaturas ativas do customer no Stripe
