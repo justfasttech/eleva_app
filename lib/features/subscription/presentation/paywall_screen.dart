@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme.dart';
+import '../../auth/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/revenuecat_service.dart';
 
@@ -86,14 +87,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       final success = await RevenueCatService.purchasePackage(pkg);
       if (success) {
         await _syncSubscriptionToSupabase();
+        await RevenueCatService.syncSubscriptionStatus();
         if (mounted) {
+          ref.invalidate(userProfileProvider);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Assinatura ativada com sucesso!'),
               backgroundColor: ElevaColors.gold,
             ),
           );
-          Navigator.pop(context);
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
         }
       }
     } catch (e) {
@@ -117,13 +122,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       if (customerInfo != null &&
           customerInfo.entitlements.all['premium']?.isActive == true) {
         await _syncSubscriptionToSupabase();
+        await RevenueCatService.syncSubscriptionStatus();
         if (mounted) {
+          ref.invalidate(userProfileProvider);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Compra restaurada com sucesso!'),
               backgroundColor: ElevaColors.gold,
             ),
           );
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
         }
       } else {
         if (mounted) {

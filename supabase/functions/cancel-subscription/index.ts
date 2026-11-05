@@ -107,9 +107,9 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Buscar assinaturas ativas do customer no Stripe
+    // Buscar assinaturas do customer no Stripe (active, trialing, past_due)
     const subsResponse = await fetch(
-      `https://api.stripe.com/v1/subscriptions?customer=${customerId}&status=active&limit=1`,
+      `https://api.stripe.com/v1/subscriptions?customer=${customerId}&limit=5`,
       {
         headers: {
           Authorization: `Bearer ${stripeSecretKey}`,
@@ -127,14 +127,20 @@ serve(async (req: Request) => {
 
     const subsData = await subsResponse.json();
 
-    if (!subsData.data || subsData.data.length === 0) {
+    // Filtrar assinaturas canceláveis (active ou trialing)
+    const cancelable = (subsData.data || []).filter(
+      (s: { status: string; cancel_at_period_end: boolean }) =>
+        (s.status === "active" || s.status === "trialing") && !s.cancel_at_period_end,
+    );
+
+    if (cancelable.length === 0) {
       return new Response(
         JSON.stringify({ error: "No active subscription found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const subscription = subsData.data[0];
+    const subscription = cancelable[0];
 
     // Cancelar no fim do período (usuário mantém acesso até expirar)
     const cancelResponse = await fetch(
