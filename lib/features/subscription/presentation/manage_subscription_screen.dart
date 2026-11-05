@@ -272,6 +272,9 @@ class _ManageSubscriptionScreenState
       if (managementURL != null) {
         await launchUrl(Uri.parse(managementURL),
             mode: LaunchMode.externalApplication);
+        await Future.delayed(const Duration(seconds: 3));
+        await RevenueCatService.syncSubscriptionStatus();
+        if (mounted) await _loadEntitlementInfo();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -290,6 +293,12 @@ class _ManageSubscriptionScreenState
     }
 
     await launchUrl(storeUrl, mode: LaunchMode.externalApplication);
+
+    await Future.delayed(const Duration(seconds: 3));
+    await RevenueCatService.syncSubscriptionStatus();
+    if (mounted) {
+      await _loadEntitlementInfo();
+    }
   }
 }
 

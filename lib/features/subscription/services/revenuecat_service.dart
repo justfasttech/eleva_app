@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RevenueCatService {
   static const _googleApiKey = 'goog_ZgVxLKMtEIQfGWIgfWbtHfGXpSh';
@@ -72,6 +73,35 @@ class RevenueCatService {
     } catch (_) {
       return null;
     }
+  }
+
+  static Future<void> syncSubscriptionStatus() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final customerInfo = await Purchases.getCustomerInfo();
+      final entitlement = customerInfo.entitlements.all['premium'];
+      final isActive = entitlement?.isActive == true;
+
+      final updates = <String, dynamic>{
+        'subscription_status': isActive ? 'premium' : 'free',
+      };
+
+      if (isActive && entitlement != null) {
+        updates['subscription_end_date'] = entitlement.expirationDate;
+      }
+
+      if (!isActive) {
+        updates['subscription_period'] = null;
+        updates['subscription_end_date'] = null;
+      }
+
+      await Supabase.instance.client
+          .from('profiles')
+          .update(updates)
+          .eq('id', userId);
+    } catch (_) {}
   }
 
   static Future<void> logIn(String userId) async {
