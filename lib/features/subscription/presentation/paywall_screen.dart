@@ -1,9 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme.dart';
 import '../providers/subscription_provider.dart';
@@ -22,7 +20,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _offeringsError = false;
   Package? _monthlyPkg;
   Package? _annualPkg;
-  int _selectedPlan = 1; // 0 = mensal, 1 = anual (pré-selecionado)
+  int _selectedPlan = 1;
 
   @override
   void initState() {
@@ -31,7 +29,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _loadOfferings() async {
-    if (kIsWeb) return;
     setState(() {
       _loadingOfferings = true;
       _offeringsError = false;
@@ -73,10 +70,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _purchase() async {
-    if (kIsWeb) {
-      _purchaseWeb();
-      return;
-    }
     final pkg = _selectedPackage;
     if (pkg == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,51 +110,28 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
   }
 
-  // Substitua pelos Payment Links reais do Stripe Dashboard
-  static const _stripeMonthlyLink = 'https://buy.stripe.com/6oUbJ26BS0f1gKD3dadwc01';
-  static const _stripeAnnualLink = 'https://buy.stripe.com/9B69AUe4k6Dpbqj5lidwc02';
-
-  Future<void> _purchaseWeb() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    final email = Supabase.instance.client.auth.currentUser?.email;
-
-    final baseUrl =
-        _selectedPlan == 0 ? _stripeMonthlyLink : _stripeAnnualLink;
-
-    final params = <String, String>{};
-    if (userId != null) params['client_reference_id'] = userId;
-    if (email != null) params['prefilled_email'] = email;
-
-    final uri = Uri.parse(baseUrl).replace(queryParameters: params);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
   Future<void> _restore() async {
     setState(() => _loading = true);
     try {
-      if (kIsWeb) {
-        await _checkWebSubscription();
+      final customerInfo = await RevenueCatService.restorePurchases();
+      if (customerInfo != null &&
+          customerInfo.entitlements.all['premium']?.isActive == true) {
+        await _syncSubscriptionToSupabase();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Compra restaurada com sucesso!'),
+              backgroundColor: ElevaColors.gold,
+            ),
+          );
+        }
       } else {
-        final customerInfo = await RevenueCatService.restorePurchases();
-        if (customerInfo != null &&
-            customerInfo.entitlements.all['premium']?.isActive == true) {
-          await _syncSubscriptionToSupabase();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Compra restaurada com sucesso!'),
-                backgroundColor: ElevaColors.gold,
-              ),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Nenhuma assinatura encontrada.'),
-              ),
-            );
-          }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nenhuma assinatura encontrada.'),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -175,39 +145,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _checkWebSubscription() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
-
-    final data = await Supabase.instance.client
-        .from('profiles')
-        .select('subscription_status')
-        .eq('id', userId)
-        .single();
-
-    if (data['subscription_status'] == 'premium') {
-      ref.invalidate(isPremiumProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Assinatura confirmada!'),
-            backgroundColor: ElevaColors.gold,
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Assinatura ainda não encontrada. Aguarde alguns instantes e tente novamente.',
-            ),
-          ),
-        );
-      }
     }
   }
 
@@ -287,7 +224,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: CircularProgressIndicator(color: ElevaColors.gold),
                 )
-              else if (_offeringsError && !kIsWeb)
+              else if (_offeringsError)
                 Column(
                   children: [
                     const Text(
@@ -318,9 +255,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: _restore,
-                    child: Text(
-                      kIsWeb ? 'Já assinei' : 'Restaurar compras',
-                      style: const TextStyle(color: ElevaColors.gold),
+                    child: const Text(
+                      'Restaurar compras',
+                      style: TextStyle(color: ElevaColors.gold),
                     ),
                   ),
                 ],
@@ -345,27 +282,20 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   String _buildCtaText() {
-    if (kIsWeb) {
-      return _selectedPlan == 0
-          ? 'Assinar mensal — R\$19,90/mês'
-          : 'Assinar anual — R\$158,90/ano';
-    }
     final pkg = _selectedPackage;
     if (pkg == null) return 'Assinar agora';
     return 'Assinar — ${pkg.storeProduct.priceString}';
   }
 
   Widget _buildPlanCards() {
-    final monthlyPrice = kIsWeb
-        ? 'R\$19,90'
-        : _monthlyPkg?.storeProduct.priceString ?? 'R\$19,90';
-    final annualPrice = kIsWeb
-        ? 'R\$158,90'
-        : _annualPkg?.storeProduct.priceString ?? 'R\$158,90';
+    final monthlyPrice =
+        _monthlyPkg?.storeProduct.priceString ?? 'R\$19,90';
+    final annualPrice =
+        _annualPkg?.storeProduct.priceString ?? 'R\$158,90';
 
     String annualMonthly;
     double? savings = _savingsPercent;
-    if (!kIsWeb && _annualPkg != null) {
+    if (_annualPkg != null) {
       final perMonth = _annualPkg!.storeProduct.price / 12;
       annualMonthly =
           '${_annualPkg!.storeProduct.currencyCode} ${perMonth.toStringAsFixed(2)}';

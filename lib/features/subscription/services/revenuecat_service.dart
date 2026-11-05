@@ -5,24 +5,27 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 class RevenueCatService {
   static const _googleApiKey = 'goog_ZgVxLKMtEIQfGWIgfWbtHfGXpSh';
   static const _appleApiKey = 'appl_KsTRmgZkrWLsEhMRcURaxFPamvC';
+  static const _webApiKey = 'strp_GoShmgWbMKBGtkfeYctqVlXBkCq';
 
   static bool _initialized = false;
 
-  static Future<void> init({required String userId}) async {
-    if (kIsWeb || _initialized) return;
+  static String get _apiKey {
+    if (kIsWeb) return _webApiKey;
+    if (defaultTargetPlatform == TargetPlatform.iOS) return _appleApiKey;
+    return _googleApiKey;
+  }
 
-    final configuration = PurchasesConfiguration(
-      defaultTargetPlatform == TargetPlatform.iOS
-          ? _appleApiKey
-          : _googleApiKey,
-    )..appUserID = userId;
+  static Future<void> init({required String userId}) async {
+    if (_initialized) return;
+
+    final configuration = PurchasesConfiguration(_apiKey)
+      ..appUserID = userId;
 
     await Purchases.configure(configuration);
     _initialized = true;
   }
 
   static Future<Offerings?> getOfferings() async {
-    if (kIsWeb) return null;
     try {
       return await Purchases.getOfferings();
     } catch (_) {
@@ -31,8 +34,8 @@ class RevenueCatService {
   }
 
   static Future<bool> purchasePackage(Package package) async {
-    if (kIsWeb) return false;
     try {
+      // ignore: deprecated_member_use
       await Purchases.purchasePackage(package);
       return true;
     } on PlatformException catch (e) {
@@ -45,7 +48,6 @@ class RevenueCatService {
   }
 
   static Future<CustomerInfo?> restorePurchases() async {
-    if (kIsWeb) return null;
     try {
       return await Purchases.restorePurchases();
     } catch (_) {
@@ -54,7 +56,6 @@ class RevenueCatService {
   }
 
   static Future<bool> hasPremiumEntitlement() async {
-    if (kIsWeb) return false;
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.entitlements.all['premium']?.isActive == true;
@@ -63,15 +64,24 @@ class RevenueCatService {
     }
   }
 
+  static Future<String?> getManagementURL() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      return customerInfo.managementURL;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<void> logIn(String userId) async {
-    if (kIsWeb || !_initialized) return;
+    if (!_initialized) return;
     try {
       await Purchases.logIn(userId);
     } catch (_) {}
   }
 
   static Future<void> logOut() async {
-    if (kIsWeb || !_initialized) return;
+    if (!_initialized) return;
     try {
       await Purchases.logOut();
     } catch (_) {}

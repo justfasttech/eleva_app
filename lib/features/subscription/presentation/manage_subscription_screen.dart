@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme.dart';
 import '../providers/subscription_provider.dart';
+import '../services/revenuecat_service.dart';
 import 'paywall_screen.dart';
 
 class ManageSubscriptionScreen extends ConsumerWidget {
@@ -192,11 +193,15 @@ class ManageSubscriptionScreen extends ConsumerWidget {
 
     Uri storeUrl;
     if (kIsWeb) {
-      if (context.mounted) {
+      final managementURL = await RevenueCatService.getManagementURL();
+      if (managementURL != null) {
+        await launchUrl(Uri.parse(managementURL),
+            mode: LaunchMode.externalApplication);
+      } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Para cancelar, acesse a loja onde você fez a assinatura.'),
+                'Não foi possível abrir o gerenciamento. Tente novamente.'),
             backgroundColor: ElevaColors.gold,
           ),
         );

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -36,11 +35,11 @@ class _AppState extends ConsumerState<App> {
       }
       if (data.event == AuthChangeEvent.signedOut && mounted) {
         setState(() => _isRecovery = false);
-        if (!kIsWeb) RevenueCatService.logOut();
+        RevenueCatService.logOut();
       }
       if (data.event == AuthChangeEvent.signedIn && mounted) {
         final userId = data.session?.user.id;
-        if (userId != null && !kIsWeb) {
+        if (userId != null) {
           _initRevenueCat(userId);
         }
       }
