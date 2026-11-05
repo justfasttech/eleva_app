@@ -36,7 +36,9 @@ class UserProfile {
     return DateTime.now().isBefore(trialEnd);
   }
 
-  bool get isPremium => subscriptionStatus == 'premium' || isTrialActive;
+  bool get isPremium => subscriptionStatus == 'premium';
+
+  bool get canAccessApp => isPremium || isTrialActive;
 
   int get trialDaysRemaining {
     final trialEnd = createdAt.add(const Duration(days: 30));

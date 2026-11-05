@@ -17,6 +17,11 @@ final isTrialActiveProvider = Provider<bool>((ref) {
   return profile?.isTrialActive ?? false;
 });
 
+final canAccessAppProvider = Provider<bool>((ref) {
+  final profile = ref.watch(userProfileProvider).value;
+  return profile?.canAccessApp ?? false;
+});
+
 final subscriptionStatusProvider = Provider<String>((ref) {
   final profile = ref.watch(userProfileProvider).value;
   return profile?.subscriptionStatus ?? 'free';

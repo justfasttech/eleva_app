@@ -12,6 +12,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/providers/user_profile_provider.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
+import 'features/subscription/presentation/paywall_screen.dart';
 import 'features/subscription/services/revenuecat_service.dart';
 
 class App extends ConsumerStatefulWidget {
@@ -91,6 +92,7 @@ class _AppState extends ConsumerState<App> {
                 );
               }
               if (profile.isAdmin) return const AdminScreen();
+              if (!profile.canAccessApp) return const PaywallScreen();
               if (!profile.onboardingCompleted) return const OnboardingScreen();
               return const HomeScreen();
             },
