@@ -77,6 +77,16 @@ class RevenueCatService {
 
   static Future<void> syncSubscriptionStatus() async {
     try {
+      if (kIsWeb) {
+        // No web, verificar direto no Stripe via Edge Function
+        await Supabase.instance.client.functions.invoke(
+          'verify-subscription',
+          method: HttpMethod.post,
+        );
+        return;
+      }
+
+      // Mobile: usar RevenueCat como fonte de verdade
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
 
@@ -92,8 +102,7 @@ class RevenueCatService {
         return;
       }
 
-      // RevenueCat diz inativo — verificar se subscription_end_date no banco
-      // ainda está no futuro (cancelado mas dentro do período pago)
+      // RevenueCat diz inativo — verificar subscription_end_date no banco
       final profile = await Supabase.instance.client
           .from('profiles')
           .select('subscription_end_date')
@@ -104,12 +113,10 @@ class RevenueCatService {
       if (endDateStr != null) {
         final endDate = DateTime.tryParse(endDateStr);
         if (endDate != null && endDate.isAfter(DateTime.now())) {
-          // Período pago ainda válido — não mudar para free
           return;
         }
       }
 
-      // Realmente expirou
       await Supabase.instance.client.from('profiles').update({
         'subscription_status': 'free',
         'subscription_period': null,
