@@ -319,8 +319,12 @@ class _ManageSubscriptionScreenState
 
       if (response.status == 200) {
         ref.invalidate(userProfileProvider);
-        await RevenueCatService.syncSubscriptionStatus();
-        if (mounted) await _loadEntitlementInfo();
+        if (mounted) {
+          setState(() {
+            _willRenew = false;
+          });
+          await _loadEntitlementInfo();
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
