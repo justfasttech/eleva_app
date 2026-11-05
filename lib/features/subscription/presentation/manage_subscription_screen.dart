@@ -4,9 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme.dart';
+import '../../auth/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/revenuecat_service.dart';
 import 'paywall_screen.dart';
@@ -24,6 +26,7 @@ class _ManageSubscriptionScreenState
   bool _willRenew = true;
   int _daysRemaining = 0;
   bool _loaded = false;
+  bool _cancelling = false;
 
   @override
   void initState() {
@@ -202,9 +205,20 @@ class _ManageSubscriptionScreenState
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () => _cancelSubscription(context),
-                    icon: const Icon(Icons.cancel_outlined, size: 20),
-                    label: const Text('Cancelar assinatura'),
+                    onPressed: _cancelling
+                        ? null
+                        : () => _cancelSubscription(context),
+                    icon: _cancelling
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: ElevaColors.gold),
+                          )
+                        : const Icon(Icons.cancel_outlined, size: 20),
+                    label: Text(_cancelling
+                        ? 'Cancelando...'
+                        : 'Cancelar assinatura'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red.shade400,
                       side: BorderSide(color: Colors.red.shade300),
@@ -234,6 +248,10 @@ class _ManageSubscriptionScreenState
   }
 
   Future<void> _cancelSubscription(BuildContext context) async {
+    final String dialogContent = kIsWeb
+        ? 'Sua assinatura será cancelada. Você manterá acesso até o fim do período pago. Deseja continuar?'
+        : 'Você será redirecionado para a loja de aplicativos para gerenciar sua assinatura. Deseja continuar?';
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -243,9 +261,9 @@ class _ManageSubscriptionScreenState
           'Cancelar assinatura',
           style: TextStyle(color: ElevaColors.textDark),
         ),
-        content: const Text(
-          'Você será redirecionado para a loja de aplicativos para gerenciar sua assinatura. Deseja continuar?',
-          style: TextStyle(fontSize: 14, color: ElevaColors.textMuted),
+        content: Text(
+          dialogContent,
+          style: const TextStyle(fontSize: 14, color: ElevaColors.textMuted),
         ),
         actions: [
           TextButton(
@@ -255,7 +273,7 @@ class _ManageSubscriptionScreenState
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Continuar',
+            child: Text('Cancelar assinatura',
                 style: TextStyle(
                     color: Colors.red.shade400,
                     fontWeight: FontWeight.w600)),
@@ -266,26 +284,13 @@ class _ManageSubscriptionScreenState
 
     if (confirmed != true) return;
 
-    Uri storeUrl;
     if (kIsWeb) {
-      final managementURL = await RevenueCatService.getManagementURL();
-      if (managementURL != null) {
-        await launchUrl(Uri.parse(managementURL),
-            mode: LaunchMode.externalApplication);
-        await Future.delayed(const Duration(seconds: 3));
-        await RevenueCatService.syncSubscriptionStatus();
-        if (mounted) await _loadEntitlementInfo();
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Não foi possível abrir o gerenciamento. Tente novamente.'),
-            backgroundColor: ElevaColors.gold,
-          ),
-        );
-      }
+      await _cancelWebSubscription();
       return;
-    } else if (Platform.isIOS) {
+    }
+
+    Uri storeUrl;
+    if (Platform.isIOS) {
       storeUrl = Uri.parse('https://apps.apple.com/account/subscriptions');
     } else {
       storeUrl =
@@ -298,6 +303,59 @@ class _ManageSubscriptionScreenState
     await RevenueCatService.syncSubscriptionStatus();
     if (mounted) {
       await _loadEntitlementInfo();
+    }
+  }
+
+  Future<void> _cancelWebSubscription() async {
+    setState(() => _cancelling = true);
+
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'cancel-subscription',
+        method: HttpMethod.post,
+      );
+
+      if (!mounted) return;
+
+      if (response.status == 200) {
+        ref.invalidate(userProfileProvider);
+        await RevenueCatService.syncSubscriptionStatus();
+        if (mounted) await _loadEntitlementInfo();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Assinatura cancelada. Acesso mantido até o fim do período.'),
+              backgroundColor: ElevaColors.gold,
+            ),
+          );
+        }
+      } else {
+        final errorMsg = response.data is Map
+            ? (response.data['error'] ?? 'Erro desconhecido')
+            : 'Erro ao cancelar assinatura';
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$errorMsg'),
+              backgroundColor: Colors.red.shade400,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao cancelar: $e'),
+            backgroundColor: Colors.red.shade400,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _cancelling = false);
     }
   }
 }
