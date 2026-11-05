@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme.dart';
@@ -10,11 +11,49 @@ import '../providers/subscription_provider.dart';
 import '../services/revenuecat_service.dart';
 import 'paywall_screen.dart';
 
-class ManageSubscriptionScreen extends ConsumerWidget {
+class ManageSubscriptionScreen extends ConsumerStatefulWidget {
   const ManageSubscriptionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ManageSubscriptionScreen> createState() =>
+      _ManageSubscriptionScreenState();
+}
+
+class _ManageSubscriptionScreenState
+    extends ConsumerState<ManageSubscriptionScreen> {
+  bool _willRenew = true;
+  int _daysRemaining = 0;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEntitlementInfo();
+  }
+
+  Future<void> _loadEntitlementInfo() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      final entitlement = customerInfo.entitlements.all['premium'];
+      if (entitlement != null && entitlement.isActive && mounted) {
+        final willRenew = entitlement.willRenew;
+        int days = 0;
+        if (entitlement.expirationDate != null) {
+          final expDate = DateTime.parse(entitlement.expirationDate!);
+          days = expDate.difference(DateTime.now()).inDays;
+          if (days < 0) days = 0;
+        }
+        setState(() {
+          _willRenew = willRenew;
+          _daysRemaining = days;
+          _loaded = true;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final status = ref.watch(subscriptionStatusProvider);
     final period = ref.watch(subscriptionPeriodProvider);
     final isPaid = status == 'premium';
@@ -24,15 +63,32 @@ class ManageSubscriptionScreen extends ConsumerWidget {
     }
 
     final planName = period == 'annual' ? 'Premium Anual' : 'Premium Mensal';
-    final renewText =
-        period == 'annual' ? 'Renova anualmente' : 'Renova mensalmente';
+
+    final String renewText;
+    if (_loaded && !_willRenew) {
+      renewText = 'Cancelado — $_daysRemaining dias restantes';
+    } else {
+      renewText =
+          period == 'annual' ? 'Renova anualmente' : 'Renova mensalmente';
+    }
+
+    final String statusLabel;
+    final IconData statusIcon;
+    if (_loaded && !_willRenew) {
+      statusLabel = 'Cancelado';
+      statusIcon = Icons.cancel_rounded;
+    } else {
+      statusLabel = 'Assinatura ativa';
+      statusIcon = Icons.check_circle_rounded;
+    }
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ElevaColors.textDark),
+          icon:
+              const Icon(Icons.arrow_back_rounded, color: ElevaColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -90,15 +146,15 @@ class ManageSubscriptionScreen extends ConsumerWidget {
                         color: ElevaColors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle_rounded,
+                          Icon(statusIcon,
                               color: ElevaColors.white, size: 18),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'Assinatura ativa',
-                            style: TextStyle(
+                            statusLabel,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: ElevaColors.white,
@@ -114,12 +170,14 @@ class ManageSubscriptionScreen extends ConsumerWidget {
               _InfoTile(
                 icon: Icons.auto_awesome_rounded,
                 title: 'Conteúdo ilimitado',
-                subtitle: 'Acesso a todas as leituras, meditações e desafios',
+                subtitle:
+                    'Acesso a todas as leituras, meditações e desafios',
               ),
               _InfoTile(
                 icon: Icons.groups_rounded,
                 title: 'Comunidade',
-                subtitle: 'Acesso à comunidade, fórum e grupos exclusivos',
+                subtitle:
+                    'Acesso à comunidade, fórum e grupos exclusivos',
               ),
               _InfoTile(
                 icon: Icons.favorite_rounded,
@@ -127,31 +185,46 @@ class ManageSubscriptionScreen extends ConsumerWidget {
                 subtitle: 'Você ajuda a manter o app funcionando',
               ),
               const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _cancelSubscription(context),
-                  icon: const Icon(Icons.cancel_outlined, size: 20),
-                  label: const Text('Cancelar assinatura'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade400,
-                    side: BorderSide(color: Colors.red.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+              if (_loaded && !_willRenew)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'Sua assinatura foi cancelada e expira em $_daysRemaining dias.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _cancelSubscription(context),
+                    icon: const Icon(Icons.cancel_outlined, size: 20),
+                    label: const Text('Cancelar assinatura'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade400,
+                      side: BorderSide(color: Colors.red.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'O cancelamento é feito pela loja onde você assinou.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: ElevaColors.textMuted,
+                const SizedBox(height: 8),
+                Text(
+                  'O cancelamento é feito pela loja onde você assinou.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: ElevaColors.textMuted,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
@@ -164,7 +237,8 @@ class ManageSubscriptionScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Cancelar assinatura',
           style: TextStyle(color: ElevaColors.textDark),
@@ -183,7 +257,8 @@ class ManageSubscriptionScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text('Continuar',
                 style: TextStyle(
-                    color: Colors.red.shade400, fontWeight: FontWeight.w600)),
+                    color: Colors.red.shade400,
+                    fontWeight: FontWeight.w600)),
           ),
         ],
       ),
