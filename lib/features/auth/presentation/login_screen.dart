@@ -147,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     .resetPasswordForEmail(
                                   email,
                                   redirectTo:
-                                      'https://justfasttech.github.io/eleva_app/reset-password.html',
+                                      'https://eleva-online.com/reset-password.html',
                                 );
                                 if (sheetContext.mounted) {
                                   Navigator.pop(sheetContext);
