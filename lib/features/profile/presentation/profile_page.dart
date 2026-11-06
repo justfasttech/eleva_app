@@ -122,7 +122,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   Future<void> _showAboutApp(BuildContext context) async {
-    String version = '1.1.0';
+    String version = '1.1.1';
     try {
       final info = await PackageInfo.fromPlatform();
       if (info.version.isNotEmpty) version = info.version;
