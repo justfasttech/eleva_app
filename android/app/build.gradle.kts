@@ -56,6 +56,12 @@ android {
             }
         }
     }
+
+    packaging {
+        jniLibs {
+            keepDebugSymbols += "**/*.so"
+        }
+    }
 }
 
 dependencies {
