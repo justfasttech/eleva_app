@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exclusão de Conta — Eleva</title>
+  <style>
+    :root {
+      --gold: #E8B84B;
+      --gold-light: #F2D68A;
+      --bg: #FAF6EE;
+      --text: #2D2D2D;
+      --text-muted: #8A8A8A;
+      --red: #D32F2F;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 16px;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 24px;
+    }
+    .warning {
+      background: rgba(211, 47, 47, 0.08);
+      border-left: 3px solid var(--red);
+      border-radius: 0 12px 12px 0;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    h2 {
+      font-size: 17px;
+      font-weight: bold;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    p { font-size: 14px; margin-bottom: 8px; }
+    .steps {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0;
+    }
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #fff;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      margin-top: 2px;
+    }
+    ul { list-style: none; padding-left: 8px; margin-bottom: 8px; }
+    ul li {
+      font-size: 14px;
+      padding-left: 16px;
+      position: relative;
+      margin-bottom: 6px;
+    }
+    ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    .contact-box {
+      background: var(--bg);
+      border: 1px solid rgba(242, 214, 138, 0.5);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 16px;
+    }
+    .contact-box .email {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gold);
+    }
+    .contact-box .company {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Exclusão de Conta</h1>
+
+    <div class="warning">
+      <strong>Atenção:</strong> A exclusão da conta é permanente e não pode ser desfeita. Todos os seus dados serão removidos em até 30 dias.
+    </div>
+
+    <h2>Como excluir sua conta</h2>
+    <p>Você pode excluir sua conta diretamente pelo aplicativo Eleva seguindo os passos abaixo:</p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <span>Abra o aplicativo Eleva e faça login na sua conta</span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span>Acesse o menu <strong>Perfil</strong> (ícone no canto inferior direito)</span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span>Toque em <strong>"Excluir conta"</strong></span>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <span>Confirme a exclusão digitando sua senha e tocando em <strong>"Excluir"</strong></span>
+      </li>
+    </ol>
+
+    <h2>Dados que serão excluídos</h2>
+    <p>Ao excluir sua conta, os seguintes dados serão permanentemente removidos:</p>
+    <ul>
+      <li>Informações de perfil (nome, e-mail, foto)</li>
+      <li>Perfil espiritual e preferências de fé</li>
+      <li>Entradas do diário pessoal</li>
+      <li>Histórico de leituras e progresso nos desafios</li>
+      <li>Dados de assinatura e pagamentos</li>
+      <li>Todas as interações e conteúdos salvos</li>
+    </ul>
+
+    <h2>Assinaturas ativas</h2>
+    <p>Se você possui uma assinatura ativa, a exclusão da conta <strong>não cancela automaticamente</strong> a cobrança. Antes de excluir sua conta, cancele sua assinatura:</p>
+    <ul>
+      <li><strong>Android:</strong> Google Play Store &gt; Assinaturas &gt; Eleva &gt; Cancelar</li>
+      <li><strong>iOS:</strong> Ajustes &gt; Apple ID &gt; Assinaturas &gt; Eleva &gt; Cancelar</li>
+      <li><strong>Web:</strong> Perfil &gt; Gerenciar assinatura &gt; Cancelar</li>
+    </ul>
+
+    <h2>Exclusão por e-mail</h2>
+    <p>Se você não consegue acessar o aplicativo, pode solicitar a exclusão da sua conta enviando um e-mail para o endereço abaixo com o assunto "Exclusão de conta" e informando o e-mail cadastrado. A exclusão será processada em até 30 dias.</p>
+
+    <div class="contact-box">
+      <div class="email">inotechnologydeveloper@gmail.com</div>
+      <div class="company">Ino Technology</div>
+    </div>
+
+    <p class="footer">&copy; 2026 Ino Technology. Todos os direitos reservados.</p>
+  </div>
+</body>
+</html>
