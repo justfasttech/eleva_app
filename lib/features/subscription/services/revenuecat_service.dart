@@ -30,7 +30,8 @@ class RevenueCatService {
   static Future<Offerings?> getOfferings() async {
     try {
       return await Purchases.getOfferings();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCat getOfferings error: $e');
       return null;
     }
   }
@@ -52,7 +53,8 @@ class RevenueCatService {
   static Future<CustomerInfo?> restorePurchases() async {
     try {
       return await Purchases.restorePurchases();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCat restorePurchases error: $e');
       return null;
     }
   }
@@ -61,7 +63,8 @@ class RevenueCatService {
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.entitlements.all['premium']?.isActive == true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCat hasPremiumEntitlement error: $e');
       return false;
     }
   }
@@ -70,7 +73,8 @@ class RevenueCatService {
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.managementURL;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCat getManagementURL error: $e');
       return null;
     }
   }
@@ -98,6 +102,7 @@ class RevenueCatService {
         await Supabase.instance.client.from('profiles').update({
           'subscription_status': 'premium',
           'subscription_end_date': entitlement.expirationDate,
+          'subscription_will_renew': entitlement.willRenew,
         }).eq('id', userId);
         return;
       }
@@ -121,21 +126,28 @@ class RevenueCatService {
         'subscription_status': 'free',
         'subscription_period': null,
         'subscription_end_date': null,
+        'subscription_will_renew': false,
       }).eq('id', userId);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('RevenueCat syncSubscriptionStatus error: $e');
+    }
   }
 
   static Future<void> logIn(String userId) async {
     if (!_initialized) return;
     try {
       await Purchases.logIn(userId);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('RevenueCat logIn error: $e');
+    }
   }
 
   static Future<void> logOut() async {
     if (!_initialized) return;
     try {
       await Purchases.logOut();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('RevenueCat logOut error: $e');
+    }
   }
 }

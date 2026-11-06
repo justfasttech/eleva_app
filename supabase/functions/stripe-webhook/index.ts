@@ -94,20 +94,32 @@ serve(async (req: Request) => {
       });
     }
 
-    // Determinar periodo baseado no intervalo do Stripe
+    // Buscar subscription via Stripe API para obter dados corretos
+    // (checkout.session.completed não inclui line_items nem current_period_end)
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     let period = "monthly";
-    const lineItems = session.line_items?.data;
-    if (lineItems && lineItems.length > 0) {
-      const interval = lineItems[0]?.price?.recurring?.interval;
-      if (interval === "year") period = "annual";
+    let endDate: string | null = null;
+
+    if (session.subscription && stripeSecretKey) {
+      const subResponse = await fetch(
+        `https://api.stripe.com/v1/subscriptions/${session.subscription}`,
+        { headers: { Authorization: `Bearer ${stripeSecretKey}` } },
+      );
+      if (subResponse.ok) {
+        const sub = await subResponse.json();
+        const interval = sub.items?.data?.[0]?.price?.recurring?.interval;
+        if (interval === "year") period = "annual";
+        if (sub.current_period_end) {
+          endDate = new Date(sub.current_period_end * 1000).toISOString();
+        }
+      }
     }
 
     const updateData: Record<string, unknown> = {
       subscription_status: "premium",
       subscription_period: period,
-      subscription_end_date: session.current_period_end
-        ? new Date(session.current_period_end * 1000).toISOString()
-        : null,
+      subscription_end_date: endDate,
+      subscription_will_renew: true,
     };
     if (session.customer) {
       updateData.stripe_customer_id = session.customer;
@@ -147,22 +159,24 @@ serve(async (req: Request) => {
     if (
       event.type === "customer.subscription.deleted" ||
       subscription.status === "canceled" ||
-      subscription.status === "unpaid" ||
-      subscription.status === "past_due"
+      subscription.status === "unpaid"
     ) {
       await supabase.from("profiles").update({
         subscription_status: "free",
         subscription_period: null,
         subscription_end_date: null,
+        subscription_will_renew: false,
       }).eq("id", userId);
     } else if (subscription.status === "active") {
       const interval = subscription.items?.data?.[0]?.price?.recurring?.interval;
+      const willRenew = !subscription.cancel_at_period_end;
       await supabase.from("profiles").update({
         subscription_status: "premium",
         subscription_period: interval === "year" ? "annual" : "monthly",
         subscription_end_date: subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000).toISOString()
           : null,
+        subscription_will_renew: willRenew,
       }).eq("id", userId);
     }
 

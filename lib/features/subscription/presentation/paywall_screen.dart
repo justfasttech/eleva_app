@@ -160,9 +160,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
+    String? endDate;
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      endDate = customerInfo.entitlements.all['premium']?.expirationDate;
+    } catch (_) {}
+
     await Supabase.instance.client.from('profiles').update({
       'subscription_status': 'premium',
       'subscription_period': _selectedPeriod,
+      'subscription_end_date': endDate,
+      'subscription_will_renew': true,
     }).eq('id', userId);
   }
 

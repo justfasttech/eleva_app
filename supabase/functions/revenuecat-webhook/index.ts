@@ -32,19 +32,47 @@ serve(async (req) => {
       ? new Date(event.expiration_at_ms).toISOString()
       : null;
 
-    let subscriptionStatus: string;
+    // Inferir período pela duração (>180 dias = annual)
+    let subscriptionPeriod: string | null = null;
+    if (event?.expiration_at_ms && event?.purchase_date_ms) {
+      const durationDays =
+        (event.expiration_at_ms - event.purchase_date_ms) / (1000 * 60 * 60 * 24);
+      subscriptionPeriod = durationDays > 180 ? "annual" : "monthly";
+    }
+
+    let updateData: Record<string, unknown>;
 
     switch (eventType) {
       case "INITIAL_PURCHASE":
       case "RENEWAL":
       case "UNCANCELLATION":
       case "NON_RENEWING_PURCHASE":
-        subscriptionStatus = "premium";
+        updateData = {
+          subscription_status: "premium",
+          subscription_will_renew: true,
+          subscription_end_date: expirationDate,
+          revenuecat_id: event?.original_app_user_id ?? appUserId,
+          ...(subscriptionPeriod ? { subscription_period: subscriptionPeriod } : {}),
+        };
         break;
       case "CANCELLATION":
+        // Usuário desativou renovação — mantém premium até expirar
+        updateData = {
+          subscription_status: "premium",
+          subscription_will_renew: false,
+          subscription_end_date: expirationDate,
+          revenuecat_id: event?.original_app_user_id ?? appUserId,
+        };
+        break;
       case "EXPIRATION":
       case "BILLING_ISSUE":
-        subscriptionStatus = "free";
+        updateData = {
+          subscription_status: "free",
+          subscription_will_renew: false,
+          subscription_end_date: null,
+          subscription_period: null,
+          revenuecat_id: event?.original_app_user_id ?? appUserId,
+        };
         break;
       default:
         return new Response(JSON.stringify({ ok: true, ignored: eventType }), {
@@ -55,11 +83,7 @@ serve(async (req) => {
 
     const { error } = await supabase
       .from("profiles")
-      .update({
-        subscription_status: subscriptionStatus,
-        subscription_end_date: expirationDate,
-        revenuecat_id: event?.original_app_user_id ?? appUserId,
-      })
+      .update(updateData)
       .eq("id", appUserId);
 
     if (error) {

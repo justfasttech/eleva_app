@@ -134,6 +134,38 @@ serve(async (req: Request) => {
     );
 
     if (cancelable.length === 0) {
+      // Verificar se já existe assinatura cancelada (cancel_at_period_end=true)
+      const alreadyCancelled = (subsData.data || []).filter(
+        (s: { status: string; cancel_at_period_end: boolean }) =>
+          (s.status === "active" || s.status === "trialing") && s.cancel_at_period_end,
+      );
+
+      if (alreadyCancelled.length > 0) {
+        const sub = alreadyCancelled[0];
+        const endDate = sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null;
+
+        // Sincronizar estado no banco
+        await supabase
+          .from("profiles")
+          .update({
+            subscription_end_date: endDate,
+            subscription_will_renew: false,
+          })
+          .eq("id", user.id);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            already_cancelled: true,
+            cancel_at_period_end: true,
+            current_period_end: endDate,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: "No active subscription found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -172,7 +204,10 @@ serve(async (req: Request) => {
 
     await supabase
       .from("profiles")
-      .update({ subscription_end_date: endDate })
+      .update({
+        subscription_end_date: endDate,
+        subscription_will_renew: false,
+      })
       .eq("id", user.id);
 
     return new Response(

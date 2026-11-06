@@ -88,11 +88,11 @@ serve(async (req: Request) => {
   }
 
   if (!customerId) {
-    // Sem customer no Stripe = sem assinatura
     await supabase.from("profiles").update({
       subscription_status: "free",
       subscription_period: null,
       subscription_end_date: null,
+      subscription_will_renew: false,
     }).eq("id", user.id);
 
     return new Response(
@@ -117,10 +117,12 @@ serve(async (req: Request) => {
           ? new Date(sub.current_period_end * 1000).toISOString()
           : null;
 
+        const willRenew = !sub.cancel_at_period_end;
         await supabase.from("profiles").update({
           subscription_status: "premium",
           subscription_period: interval === "year" ? "annual" : "monthly",
           subscription_end_date: endDate,
+          subscription_will_renew: willRenew,
         }).eq("id", user.id);
 
         return new Response(
@@ -128,6 +130,7 @@ serve(async (req: Request) => {
             status: "premium",
             cancel_at_period_end: sub.cancel_at_period_end || false,
             current_period_end: endDate,
+            will_renew: willRenew,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
@@ -136,14 +139,19 @@ serve(async (req: Request) => {
 
     // Sem assinatura ativa — verificar se tem cancelada dentro do período
     const allResponse = await fetch(
-      `https://api.stripe.com/v1/subscriptions?customer=${customerId}&limit=1`,
+      `https://api.stripe.com/v1/subscriptions?customer=${customerId}&limit=5`,
       { headers: { Authorization: `Bearer ${stripeSecretKey}` } },
     );
 
     if (allResponse.ok) {
       const allData = await allResponse.json();
-      if (allData.data && allData.data.length > 0) {
-        const sub = allData.data[0];
+      // Filtrar apenas subscriptions relevantes (excluir incomplete/incomplete_expired)
+      const validSubs = (allData.data || []).filter(
+        (s: { status: string }) =>
+          s.status === "active" || s.status === "canceled" || s.status === "trialing" || s.status === "past_due",
+      );
+      if (validSubs.length > 0) {
+        const sub = validSubs[0];
         if (sub.current_period_end) {
           const endDate = new Date(sub.current_period_end * 1000);
           if (endDate > new Date()) {
@@ -153,6 +161,7 @@ serve(async (req: Request) => {
               subscription_status: "premium",
               subscription_period: interval === "year" ? "annual" : "monthly",
               subscription_end_date: endDate.toISOString(),
+              subscription_will_renew: false,
             }).eq("id", user.id);
 
             return new Response(
@@ -160,6 +169,7 @@ serve(async (req: Request) => {
                 status: "premium",
                 cancel_at_period_end: true,
                 current_period_end: endDate.toISOString(),
+                will_renew: false,
               }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
             );
@@ -168,11 +178,11 @@ serve(async (req: Request) => {
       }
     }
 
-    // Nenhuma assinatura ativa nem dentro do período
     await supabase.from("profiles").update({
       subscription_status: "free",
       subscription_period: null,
       subscription_end_date: null,
+      subscription_will_renew: false,
     }).eq("id", user.id);
 
     return new Response(

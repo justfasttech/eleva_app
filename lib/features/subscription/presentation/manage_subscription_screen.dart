@@ -36,6 +36,26 @@ class _ManageSubscriptionScreenState
 
   Future<void> _loadEntitlementInfo() async {
     try {
+      if (kIsWeb) {
+        // No web, usar dados do Supabase profile (já sincronizado pelo verify-subscription)
+        final profile = ref.read(userProfileProvider).value;
+        if (profile != null && profile.isPremium && mounted) {
+          final willRenew = profile.subscriptionWillRenew;
+          int days = 0;
+          if (profile.subscriptionEndDate != null) {
+            days = profile.subscriptionEndDate!.difference(DateTime.now()).inDays;
+            if (days < 0) days = 0;
+          }
+          setState(() {
+            _willRenew = willRenew;
+            _daysRemaining = days;
+            _loaded = true;
+          });
+        }
+        return;
+      }
+
+      // Mobile: usar RevenueCat
       final customerInfo = await Purchases.getCustomerInfo();
       final entitlement = customerInfo.entitlements.all['premium'];
       if (entitlement != null && entitlement.isActive && mounted) {
@@ -52,7 +72,9 @@ class _ManageSubscriptionScreenState
           _loaded = true;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error loading entitlement info: $e');
+    }
   }
 
   @override
@@ -367,6 +389,7 @@ class _ManageSubscriptionScreenState
     await Future.delayed(const Duration(seconds: 3));
     await RevenueCatService.syncSubscriptionStatus();
     if (mounted) {
+      ref.invalidate(userProfileProvider);
       await _loadEntitlementInfo();
     }
   }
@@ -384,11 +407,23 @@ class _ManageSubscriptionScreenState
 
       if (response.status == 200) {
         ref.invalidate(userProfileProvider);
+
+        // Usar dados da resposta diretamente em vez de esperar o Realtime
+        int days = 0;
+        if (response.data is Map && response.data['current_period_end'] != null) {
+          final endDate = DateTime.tryParse(response.data['current_period_end']);
+          if (endDate != null) {
+            days = endDate.difference(DateTime.now()).inDays;
+            if (days < 0) days = 0;
+          }
+        }
+
         if (mounted) {
           setState(() {
             _willRenew = false;
+            _daysRemaining = days;
+            _loaded = true;
           });
-          await _loadEntitlementInfo();
         }
 
         if (mounted) {
