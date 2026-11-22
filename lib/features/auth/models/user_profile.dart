@@ -14,6 +14,7 @@ class UserProfile {
   final String? revenuecatId;
   final String? subscriptionPeriod;
   final bool subscriptionWillRenew;
+  final String? avatarUrl;
 
   const UserProfile({
     required this.id,
@@ -31,6 +32,7 @@ class UserProfile {
     this.revenuecatId,
     this.subscriptionPeriod,
     this.subscriptionWillRenew = true,
+    this.avatarUrl,
   });
 
   bool get isTrialActive {
@@ -72,6 +74,7 @@ class UserProfile {
       revenuecatId: map['revenuecat_id'] as String?,
       subscriptionPeriod: map['subscription_period'] as String?,
       subscriptionWillRenew: map['subscription_will_renew'] as bool? ?? true,
+      avatarUrl: map['avatar_url'] as String?,
     );
   }
 }

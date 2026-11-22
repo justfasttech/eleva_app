@@ -7,7 +7,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/theme.dart';
+import '../../../core/eleva_design.dart';
 import '../../auth/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/revenuecat_service.dart';
@@ -81,258 +81,217 @@ class _ManageSubscriptionScreenState
   Widget build(BuildContext context) {
     final status = ref.watch(subscriptionStatusProvider);
     final period = ref.watch(subscriptionPeriodProvider);
+    final isTrialActive = ref.watch(isTrialActiveProvider);
+    final trialDays = ref.watch(trialDaysRemainingProvider);
     final isPaid = status == 'premium';
 
-    if (!isPaid) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: ElevaColors.textDark),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: const Text(
-            'Gerenciar assinatura',
-            style: TextStyle(color: ElevaColors.textDark),
-          ),
-          centerTitle: true,
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.workspace_premium_rounded,
-                    color: ElevaColors.gold, size: 64),
-                const SizedBox(height: 16),
-                const Text(
-                  'Você não tem uma assinatura ativa',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: ElevaColors.textDark,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Assine o Premium para ter acesso ilimitado a todos os conteúdos.',
-                  style: TextStyle(fontSize: 14, color: ElevaColors.textMuted),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                            builder: (_) => const PaywallScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ElevaColors.gold,
-                      foregroundColor: ElevaColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text('Ver planos',
-                        style: TextStyle(fontSize: 16)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    final planName = period == 'annual' ? 'Premium Anual' : 'Premium Mensal';
-
-    final String renewText;
-    if (_loaded && !_willRenew) {
-      renewText = 'Cancelado — $_daysRemaining dias restantes';
-    } else {
-      renewText =
-          period == 'annual' ? 'Renova anualmente' : 'Renova mensalmente';
-    }
-
-    final String statusLabel;
-    final IconData statusIcon;
-    if (_loaded && !_willRenew) {
-      statusLabel = 'Cancelado';
-      statusIcon = Icons.cancel_rounded;
-    } else {
-      statusLabel = 'Assinatura ativa';
-      statusIcon = Icons.check_circle_rounded;
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon:
-              const Icon(Icons.arrow_back_rounded, color: ElevaColors.textDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Gerenciar assinatura',
-          style: TextStyle(color: ElevaColors.textDark),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: EDColors.surface,
+      appBar: EDDecor.appBar(context, 'Gerenciar assinatura'),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [ElevaColors.gold, ElevaColors.goldDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.workspace_premium_rounded,
-                      color: ElevaColors.white,
-                      size: 48,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      planName,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: ElevaColors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      renewText,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: ElevaColors.white.withValues(alpha: 0.85),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: ElevaColors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(statusIcon,
-                              color: ElevaColors.white, size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            statusLabel,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: ElevaColors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              _InfoTile(
-                icon: Icons.auto_awesome_rounded,
-                title: 'Conteúdo ilimitado',
-                subtitle:
-                    'Acesso a todas as leituras, meditações e desafios',
-              ),
-              _InfoTile(
-                icon: Icons.groups_rounded,
-                title: 'Comunidade',
-                subtitle:
-                    'Acesso à comunidade, fórum e grupos exclusivos',
-              ),
-              _InfoTile(
-                icon: Icons.favorite_rounded,
-                title: 'Apoio ao Eleva',
-                subtitle: 'Você ajuda a manter o app funcionando',
-              ),
-              const Spacer(),
-              if (_loaded && !_willRenew)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'Sua assinatura foi cancelada e expira em $_daysRemaining dias.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.orange.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _cancelling
-                        ? null
-                        : () => _cancelSubscription(context),
-                    icon: _cancelling
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: ElevaColors.gold),
-                          )
-                        : const Icon(Icons.cancel_outlined, size: 20),
-                    label: Text(_cancelling
-                        ? 'Cancelando...'
-                        : 'Cancelar assinatura'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade400,
-                      side: BorderSide(color: Colors.red.shade300),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'O cancelamento é feito pela loja onde você assinou.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: ElevaColors.textMuted,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              const SizedBox(height: 24),
-            ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: isPaid
+                ? _buildPremium(period)
+                : _buildFree(isTrialActive, trialDays),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildFree(bool isTrialActive, int trialDays) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: EDColors.navy,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isTrialActive ? 'PERÍODO DE TESTE' : 'SEM ASSINATURA',
+                style: EDText.eyebrow(color: EDColors.gold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isTrialActive
+                    ? '$trialDays ${trialDays == 1 ? 'dia restante' : 'dias restantes'}'
+                    : 'Seu teste terminou',
+                style: EDText.display(size: 30, weight: FontWeight.w500, color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Assine o Premium para ter acesso ilimitado a todos os conteúdos.',
+                style: EDText.body(color: EDColors.onNavyMuted, height: 1.45),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: EDDecor.primaryButton().copyWith(
+                  backgroundColor: const WidgetStatePropertyAll(EDColors.gold),
+                  foregroundColor: const WidgetStatePropertyAll(EDColors.ink),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                  );
+                },
+                child: const Text('Ver planos'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text('O que o Premium inclui', style: EDText.body(size: 16, weight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        ..._benefits(),
+      ],
+    );
+  }
+
+  Widget _buildPremium(String? period) {
+    final planName = period == 'annual' ? 'Premium Anual' : 'Premium Mensal';
+    final cancelled = _loaded && !_willRenew;
+
+    final String renewText = cancelled
+        ? 'Acesso até o fim do período · $_daysRemaining ${_daysRemaining == 1 ? 'dia' : 'dias'}'
+        : (period == 'annual' ? 'Renova anualmente' : 'Renova mensalmente');
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: EDColors.navy,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: EDColors.navySoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.workspace_premium_rounded, color: EDColors.gold),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: cancelled ? const Color(0xFFFDECEA) : EDColors.gold,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          cancelled ? Icons.cancel_rounded : Icons.check_circle_rounded,
+                          size: 16,
+                          color: cancelled ? EDColors.danger : EDColors.ink,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          cancelled ? 'Cancelada' : 'Ativa',
+                          style: EDText.body(
+                            size: 12,
+                            weight: FontWeight.w800,
+                            color: cancelled ? EDColors.danger : EDColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                planName,
+                style: EDText.display(size: 30, weight: FontWeight.w500, color: Colors.white),
+              ),
+              const SizedBox(height: 4),
+              Text(renewText, style: EDText.body(color: EDColors.onNavyMuted)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text('Seu plano inclui', style: EDText.body(size: 16, weight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        ..._benefits(),
+        const SizedBox(height: 24),
+        if (cancelled)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: EDColors.goldSoft,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: EDColors.goldInk),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Sua assinatura foi cancelada e expira em $_daysRemaining ${_daysRemaining == 1 ? 'dia' : 'dias'}.',
+                    style: EDText.body(size: 13, weight: FontWeight.w600, color: EDColors.goldInk),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          OutlinedButton.icon(
+            style: EDDecor.secondaryButton(color: EDColors.danger),
+            onPressed: _cancelling ? null : () => _cancelSubscription(context),
+            icon: _cancelling
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: EDColors.danger),
+                  )
+                : const Icon(Icons.cancel_outlined, size: 20),
+            label: Text(_cancelling ? 'Cancelando...' : 'Cancelar assinatura'),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            kIsWeb
+                ? 'Você mantém o acesso até o fim do período pago.'
+                : 'O cancelamento é feito pela loja onde você assinou.',
+            textAlign: TextAlign.center,
+            style: EDText.body(size: 12, color: EDColors.inkMuted),
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<Widget> _benefits() => const [
+        _InfoTile(
+          icon: Icons.auto_awesome_rounded,
+          title: 'Conteúdo ilimitado',
+          subtitle: 'Acesso a todas as leituras, meditações e desafios',
+        ),
+        _InfoTile(
+          icon: Icons.groups_rounded,
+          title: 'Comunidade',
+          subtitle: 'Acesso à comunidade, fórum e grupos exclusivos',
+        ),
+        _InfoTile(
+          icon: Icons.favorite_rounded,
+          title: 'Apoio ao Eleva',
+          subtitle: 'Você ajuda a manter o app funcionando',
+        ),
+      ];
 
   Future<void> _cancelSubscription(BuildContext context) async {
     final String dialogContent = kIsWeb
@@ -341,29 +300,25 @@ class _ManageSubscriptionScreenState
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Cancelar assinatura',
-          style: TextStyle(color: ElevaColors.textDark),
-        ),
-        content: Text(
-          dialogContent,
-          style: const TextStyle(fontSize: 14, color: ElevaColors.textMuted),
-        ),
+      builder: (ctx) => EDDialog(
+        icon: Icons.cancel_outlined,
+        iconColor: EDColors.danger,
+        iconBackground: const Color(0xFFFDECEA),
+        title: 'Cancelar assinatura?',
+        message: dialogContent,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Voltar',
-                style: TextStyle(color: ElevaColors.textMuted)),
+          ElevatedButton(
+            style: EDDecor.dangerButton(),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Cancelar assinatura'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Cancelar assinatura',
-                style: TextStyle(
-                    color: Colors.red.shade400,
-                    fontWeight: FontWeight.w600)),
+            style: TextButton.styleFrom(
+              foregroundColor: EDColors.inkMuted,
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Manter assinatura', style: EDText.body(weight: FontWeight.w700, color: EDColors.inkMuted)),
           ),
         ],
       ),
@@ -431,7 +386,7 @@ class _ManageSubscriptionScreenState
             const SnackBar(
               content: Text(
                   'Assinatura cancelada. Acesso mantido até o fim do período.'),
-              backgroundColor: ElevaColors.gold,
+              backgroundColor: EDColors.blue,
             ),
           );
         }
@@ -477,38 +432,29 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: EDDecor.card(radius: 18),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: ElevaColors.goldLight.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
+              color: EDColors.blueSoft,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: ElevaColors.gold, size: 22),
+            child: Icon(icon, color: EDColors.blue, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: ElevaColors.textDark,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: ElevaColors.textMuted,
-                  ),
-                ),
+                Text(title, style: EDText.body(size: 15, weight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: EDText.body(size: 13, color: EDColors.inkMuted, height: 1.4)),
               ],
             ),
           ),

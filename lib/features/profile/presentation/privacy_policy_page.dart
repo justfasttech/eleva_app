@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme.dart';
+import '../../../core/eleva_design.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -8,32 +8,39 @@ class PrivacyPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Política de Privacidade')),
+      backgroundColor: EDColors.surface,
+      appBar: EDDecor.appBar(context, 'Privacidade'),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Image.asset('assets/images/logo.png', height: 56),
-              ),
-              const SizedBox(height: 16),
-              const Center(
-                child: Text(
-                  'Política de Privacidade',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: ElevaColors.textDark,
-                  ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: EDColors.navy,
+                  borderRadius: BorderRadius.circular(24),
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Center(
-                child: Text(
-                  'Última atualização: 30 de setembro de 2026',
-                  style: TextStyle(fontSize: 13, color: ElevaColors.textMuted),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Image.asset('assets/images/logo_lotus.png', height: 32),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Política de Privacidade',
+                      style: EDText.display(size: 26, weight: FontWeight.w500, color: Colors.white),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Última atualização: 30 de setembro de 2026',
+                      style: EDText.body(size: 13, color: EDColors.onNavyMuted),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
@@ -164,45 +171,48 @@ class PrivacyPolicyPage extends StatelessWidget {
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: ElevaColors.offWhite,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: ElevaColors.goldLight.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: const Column(
+                padding: const EdgeInsets.all(18),
+                decoration: EDDecor.card(radius: 20),
+                child: Row(
                   children: [
-                    Text(
-                      'inotechnologydeveloper@gmail.com',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: ElevaColors.gold,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: EDColors.blueSoft,
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      child: const Icon(Icons.mail_outline_rounded, color: EDColors.blue),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Ino Technology',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: ElevaColors.textMuted,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SelectableText(
+                            'inotechnologydeveloper@gmail.com',
+                            style: EDText.body(size: 15, weight: FontWeight.w800, color: EDColors.blue),
+                          ),
+                          const SizedBox(height: 2),
+                          Text('Ino Technology', style: EDText.body(size: 13, color: EDColors.inkMuted)),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
-              const Center(
+              Center(
                 child: Text(
                   '© 2026 Ino Technology. Todos os direitos reservados.',
-                  style: TextStyle(fontSize: 12, color: ElevaColors.textMuted),
+                  style: EDText.body(size: 12, color: EDColors.inkMuted),
                   textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(height: 24),
             ],
+          ),
+        ),
           ),
         ),
       ),
@@ -211,63 +221,39 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   static Widget _section(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 28, bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.bold,
-          color: ElevaColors.textDark,
-        ),
-      ),
+      padding: const EdgeInsets.only(top: 32, bottom: 12),
+      child: Text(title, style: EDText.display(size: 20)),
     );
   }
 
   static Widget _subtitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 12, bottom: 6),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: ElevaColors.textDark,
-        ),
-      ),
+      child: Text(title, style: EDText.body(size: 15, weight: FontWeight.w800)),
     );
   }
 
   static Widget _text(String content) {
-    return Text(
-      content,
-      style: const TextStyle(
-        fontSize: 14,
-        color: ElevaColors.textDark,
-        height: 1.6,
-      ),
-    );
+    return Text(content, style: EDText.body(size: 15, weight: FontWeight.w400, height: 1.6));
   }
 
   static Widget _bullet(String content) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 6),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 7),
-            child: Icon(Icons.circle, size: 6, color: ElevaColors.gold),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              content,
-              style: const TextStyle(
-                fontSize: 14,
-                color: ElevaColors.textDark,
-                height: 1.6,
-              ),
+          Padding(
+            padding: const EdgeInsets.only(top: 9),
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(color: EDColors.gold, shape: BoxShape.circle),
             ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(content, style: EDText.body(size: 15, weight: FontWeight.w400, height: 1.6)),
           ),
         ],
       ),
@@ -277,25 +263,21 @@ class PrivacyPolicyPage extends StatelessWidget {
   static Widget _highlightBox(String content) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(top: 4, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ElevaColors.goldLight.withValues(alpha: 0.15),
-        borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(12),
-          bottomRight: Radius.circular(12),
-        ),
-        border: const Border(
-          left: BorderSide(color: ElevaColors.gold, width: 3),
-        ),
+        color: EDColors.blueSoft,
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Text(
-        content,
-        style: const TextStyle(
-          fontSize: 14,
-          color: ElevaColors.textDark,
-          height: 1.5,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.verified_user_outlined, color: EDColors.blue, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(content, style: EDText.body(size: 14, weight: FontWeight.w600, height: 1.5)),
+          ),
+        ],
       ),
     );
   }
